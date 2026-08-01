@@ -1,5 +1,6 @@
+import 'package:eposrtplay/screens/team/home_page.dart';
 import 'package:flutter/material.dart';
-import '../home/home_screen.dart';
+import '../team/home_page.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import 'login_screen.dart';
@@ -36,7 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => const HomePage(),
         ),
       );
     }

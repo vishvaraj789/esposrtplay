@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 
-class PlayersProfileScreen extends StatelessWidget{
-  const PlayersProfileScreen({super.key});
+class PlayerProfilesScreen extends StatefulWidget{
+  const PlayerProfilesScreen({super.key});
 
+  @override
+  State<PlayerProfilesScreen> createState() => _PlayerProfilesScreenState();
+
+}
+
+class _PlayerProfilesScreenState extends State<PlayerProfilesScreen> {
   @override
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Players Profile"),
+        title: Text("Player Profiles"),
         centerTitle: true,
       ),
-      body: const Text("Players profile Screen"),
+      body: Center(
+          child: const Text("Player Profiles"),
+      ),
     );
   }
 }

@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
 
-class MemberDetailsScreen extends StatefulWidget {
-  final int playerCount;
+import '../../models/team.dart';
+import '../../models/team_member.dart';
+import 'team_detail_screen.dart';
+import '../../data/team_data.dart';
 
-  const MemberDetailsScreen({
+class MemberDetailsFormScreen extends StatefulWidget {
+  final int playerCount;
+  final String teamName;
+  final String? teamLogoPath;
+
+  const MemberDetailsFormScreen({
     super.key,
     required this.playerCount,
+    required this.teamName,
+    this.teamLogoPath,
   });
-
   @override
-  State<MemberDetailsScreen> createState() => _MemberDetailsScreenState();
+  State<MemberDetailsFormScreen> createState() => _MemberDetailsScreenState();
 }
 
-class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
+class _MemberDetailsScreenState extends State<MemberDetailsFormScreen> {
   late List<TextEditingController> playerNameControllers;
   late List<TextEditingController> playerUidControllers;
   late List<String> selectedRoles;
 
   final List<String> roles = [
-    "IGL",
     "Rusher",
+    "Secondary Rusher",
     "Sniper",
     "Support",
-    "Entry Fragger",
+    "Grenadier/IGL"
   ];
 
   @override
@@ -58,6 +66,26 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
     super.dispose();
   }
 
+  /// Builds a Team object from whatever the user typed into the form.
+  /// Player 1 is treated as the captain/IGL of the roster.
+  Team _buildTeamFromForm() {
+    final members = List.generate(widget.playerCount, (i) {
+      final name = playerNameControllers[i].text.trim();
+      final uid = playerUidControllers[i].text.trim();
+      return TeamMember(
+        playerName: name.isEmpty ? 'Player ${i + 1}' : name,
+        playerUid: uid.isEmpty ? '-' : uid,
+        role: selectedRoles[i],
+        isCaptain: i == 0,
+      );
+    });
+
+    return Team(
+      teamName: widget.teamName,
+      teamLogo: widget.teamLogoPath ?? "",
+      members: members,
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,10 +119,10 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
 
                     const SizedBox(height: 20),
 
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 35,
                       backgroundColor: Colors.orange,
-                      child: const Icon(
+                      child: Icon(
                         Icons.person,
                         color: Colors.white,
                         size: 35,
@@ -156,18 +184,27 @@ class _MemberDetailsScreenState extends State<MemberDetailsScreen> {
             height: 55,
             child: ElevatedButton(
               onPressed: () {
-                for (int i = 0; i < widget.playerCount; i++) {
+                final team = _buildTeamFromForm();
+
+                // Save team in team_data.dart
+                TeamData.saveTeam(team);
+
+                for (final member in team.members) {
                   debugPrint(
-                    "Player ${i + 1}: "
-                        "${playerNameControllers[i].text}, "
-                        "${playerUidControllers[i].text}, "
-                        "${selectedRoles[i]}",
+                    "${member.playerName}, ${member.playerUid}, ${member.role}",
                   );
                 }
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text("Members Saved Successfully"),
+                  ),
+                );
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const TeamDetailScreen(),
                   ),
                 );
               },

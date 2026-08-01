@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../home/home_screen.dart';
+import '../team/home_page.dart';
 import '../tournament/tournament_screen.dart';
 import '../player/player_profile_screen.dart';
-import '../setting/settings_screen.dart';
 
 class BottomNavScreen extends StatefulWidget {
   const BottomNavScreen({super.key});
@@ -16,10 +15,9 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   int currentIndex = 0;
 
   final List<Widget> pages = const [
-    HomeScreen(),
+    HomePage(),
     TournamentScreen(),
     PlayerProfileScreen(),
-    SettingsScreen(),
   ];
 
   @override

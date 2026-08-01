@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../player/player_profile_screen.dart';
 import '../team/create_team_screen.dart';
-import '../team/my_teams_screen.dart';
+import '../team/join_as_team.dart';
 
 class ChooseRoleScreen extends StatelessWidget {
   const ChooseRoleScreen({super.key});
@@ -71,7 +71,7 @@ class ChooseRoleScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MyTeamsScreen(),
+                      builder: (_) => const JoinAsTeamScreen(),
                     ),
                   );
                 },

@@ -1,13 +1,13 @@
 import 'package:eposrtplay/screens/player/choose_role_screen.dart';
 import 'package:flutter/material.dart';
-import '../home/bottom_nav_screen.dart';
+
 import 'register_screen.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/google_login_button.dart';
 import '../../core/widgets/facebook_login_button.dart';
 import '../../core/widgets/appleid_login_button.dart';
-import '../home/home_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
