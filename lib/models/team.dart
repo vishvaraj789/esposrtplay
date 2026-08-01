@@ -10,4 +10,16 @@ class Team {
     required this.teamLogo,
     required this.members,
   });
+
+  Team copyWith({
+    String? teamName,
+    String? teamLogo,
+    List<TeamMember>? members,
+  }) {
+    return Team(
+      teamName: teamName ?? this.teamName,
+      teamLogo: teamLogo ?? this.teamLogo,
+      members: members ?? this.members,
+    );
+  }
 }
