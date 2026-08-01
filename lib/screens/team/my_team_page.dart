@@ -104,130 +104,139 @@ class _MyTeamPageState extends State<MyTeamPage> {
   Future<void> _showEditTeamDialog() async {
     final nameController = TextEditingController(text: _team.teamName);
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: const Text(
-            "Edit Team",
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-          ),
-          content: TextField(
-            controller: nameController,
-            autofocus: true,
-            style: const TextStyle(color: textColor),
-            decoration: InputDecoration(
-              labelText: "Team Name",
-              labelStyle: const TextStyle(color: textSecondaryColor),
-              filled: true,
-              fillColor: bgColor,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Text(
+              "Edit Team",
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+            content: TextField(
+              controller: nameController,
+              autofocus: true,
+              style: const TextStyle(color: textColor),
+              decoration: InputDecoration(
+                labelText: "Team Name",
+                labelStyle: const TextStyle(color: textSecondaryColor),
+                filled: true,
+                fillColor: bgColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: accentColor),
-              onPressed: () {
-                final newName = nameController.text.trim();
-                if (newName.isNotEmpty) {
-                  _saveTeam(_team.copyWith(teamName: newName));
-                }
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("Save", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                onPressed: () {
+                  final newName = nameController.text.trim();
+                  if (newName.isNotEmpty) {
+                    _saveTeam(_team.copyWith(teamName: newName));
+                  }
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text("Save", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      nameController.dispose();
+    }
   }
 
   Future<void> _showAddMemberDialog() async {
     final nameController = TextEditingController();
     final uidController = TextEditingController();
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: const Text(
-            "Add Member",
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                style: const TextStyle(color: textColor),
-                decoration: InputDecoration(
-                  labelText: "Player Name",
-                  labelStyle: const TextStyle(color: textSecondaryColor),
-                  filled: true,
-                  fillColor: bgColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Text(
+              "Add Member",
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  style: const TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: "Player Name",
+                    labelStyle: const TextStyle(color: textSecondaryColor),
+                    filled: true,
+                    fillColor: bgColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: uidController,
+                  style: const TextStyle(color: textColor),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: "Player UID",
+                    labelStyle: const TextStyle(color: textSecondaryColor),
+                    filled: true,
+                    fillColor: bgColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: uidController,
-                style: const TextStyle(color: textColor),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Player UID",
-                  labelStyle: const TextStyle(color: textSecondaryColor),
-                  filled: true,
-                  fillColor: bgColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                onPressed: () {
+                  final name = nameController.text.trim();
+                  final uid = uidController.text.trim();
+                  if (name.isNotEmpty) {
+                    final updatedMembers = List<TeamMember>.from(_team.members)
+                      ..add(TeamMember(
+                        playerName: name,
+                        playerUid: uid.isEmpty ? '-' : uid,
+                        role: "Member",
+                      ));
+                    _saveTeam(_team.copyWith(members: updatedMembers));
+                  }
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text("Add", style: TextStyle(color: Colors.white)),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: accentColor),
-              onPressed: () {
-                final name = nameController.text.trim();
-                final uid = uidController.text.trim();
-                if (name.isNotEmpty) {
-                  final updatedMembers = List<TeamMember>.from(_team.members)
-                    ..add(TeamMember(
-                      playerName: name,
-                      playerUid: uid.isEmpty ? '-' : uid,
-                      role: "Member",
-                    ));
-                  _saveTeam(_team.copyWith(members: updatedMembers));
-                }
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("Add", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      nameController.dispose();
+      uidController.dispose();
+    }
   }
 
   Future<void> _editMyProfile() async {
