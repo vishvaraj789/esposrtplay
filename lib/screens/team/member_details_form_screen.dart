@@ -30,7 +30,8 @@ class _MemberDetailsScreenState extends State<MemberDetailsFormScreen> {
     "Secondary Rusher",
     "Sniper",
     "Support",
-    "Grenadier/IGL"
+    "Grenadier/IGL",
+    "Nader"
   ];
 
   @override

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../tournament/tournament_screen.dart';
+import 'my_team_page.dart';
+import 'settings_page.dart';
 
 // Color Scheme
 const bgColor = Color(0xFF0B0B10);
@@ -226,12 +229,15 @@ class HomePage extends StatelessWidget {
       itemCount: actions.length,
       itemBuilder: (context, index) {
         final (title, icon, color) = actions[index];
-        return _buildActionCard(title, icon as IconData, color as Color);
+        return _buildActionCard(context, title, icon, color);
       },
     );
   }
-
-  Widget _buildActionCard(String title, IconData icon, Color color) {
+  Widget _buildActionCard(
+      BuildContext context,
+      String title,
+      IconData icon,
+      Color color) {
     return Container(
       decoration: BoxDecoration(
         color: surfaceColor,
@@ -241,7 +247,7 @@ class HomePage extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () => _handleActionTap(context, title),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -273,6 +279,29 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  void _handleActionTap(BuildContext context, String title) {
+    switch (title) {
+      case "Tournament":
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TournamentScreen()),
+        );
+        break;
+      case "Teams":
+        Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MyTeamPage()));
+      case "Settings":
+        Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsPage()));
+      default:
+      // Teams / Profile / Settings screens not built yet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("$title screen coming soon")),
+        );
+    }
+  }
   // Tournament Card
   Widget _buildTournamentCard() {
     return Container(

@@ -1,10 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-
 import '../../data/player_data.dart';
 import '../../data/team_data.dart';
 import '../../models/team.dart';
 import '../../models/team_member.dart';
-import '../player/edit_profile_screen.dart';
 
 // Color Scheme
 const bgColor = Color(0xFF0B0B10);
@@ -14,12 +13,20 @@ const accentSecondary = Color(0xFFFF7A45);
 const textColor = Colors.white;
 const textSecondaryColor = Color(0xFF9797A8);
 
-// Colors cycled through for teammates other than the current user.
 const List<Color> _memberColors = [
   accentSecondary,
   Color(0xFF448AFF),
   Color(0xFF00E676),
   Color(0xFFFFD166),
+];
+
+const List<String> _roles = [
+  "Rusher",
+  "Secondary Rusher",
+  "Sniper",
+  "Support",
+  "Grenadier/IGL",
+  "Nader"
 ];
 
 class MyTeamPage extends StatefulWidget {
@@ -35,63 +42,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
   @override
   void initState() {
     super.initState();
-    // Load the previously saved team (created via Create/Join Team flow).
-    // If none exists yet, build one seeded with the logged-in user's data
-    // so the page always reflects real user data instead of dummy text.
-    _team = TeamData.getTeam() ?? _buildDefaultTeam();
-    TeamData.saveTeam(_team);
-  }
-
-  Team _buildDefaultTeam() {
-    return Team(
-      teamName: player.team.trim().isNotEmpty ? player.team : "My Squad",
-      teamLogo: "",
-      members: [
-        TeamMember(
-          playerName: player.name,
-          playerUid: player.uid,
-          role: "Captain",
-          isCaptain: true,
-        ),
-        TeamMember(
-          playerName: "ShadowStrike",
-          playerUid: "10293847",
-          role: "Co-Captain",
-        ),
-        TeamMember(
-          playerName: "NovaBlaze",
-          playerUid: "48291037",
-          role: "Member",
-        ),
-        TeamMember(
-          playerName: "Phoenix_King",
-          playerUid: "77281910",
-          role: "Member",
-        ),
-      ],
-    );
-  }
-
-  bool _isCurrentUser(TeamMember member) => member.playerUid == player.uid;
-
-  String get _captainName {
-    final captain = _team.members.where((m) => m.isCaptain).toList();
-    if (captain.isNotEmpty) return captain.first.playerName;
-    if (_team.members.isNotEmpty) return _team.members.first.playerName;
-    return player.name;
-  }
-
-  String _formatNumber(int value) {
-    final raw = value.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < raw.length; i++) {
-      final posFromEnd = raw.length - i;
-      buffer.write(raw[i]);
-      if (posFromEnd > 1 && posFromEnd % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-    return buffer.toString();
+    _team = TeamData.getTeam()!;
   }
 
   void _saveTeam(Team updated) {
@@ -112,7 +63,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
             backgroundColor: surfaceColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             title: const Text(
-              "Edit Team",
+              "Edit Team Name",
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
             ),
             content: TextField(
@@ -155,81 +106,97 @@ class _MyTeamPageState extends State<MyTeamPage> {
     }
   }
 
-  Future<void> _showAddMemberDialog() async {
-    final nameController = TextEditingController();
-    final uidController = TextEditingController();
+  Future<void> _showEditMemberDialog(int index, TeamMember member) async {
+    final nameController = TextEditingController(text: member.playerName);
+    final uidController = TextEditingController(text: member.playerUid);
+    String selectedRole = member.role;
 
     try {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
-          return AlertDialog(
-            backgroundColor: surfaceColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            title: const Text(
-              "Add Member",
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  autofocus: true,
-                  style: const TextStyle(color: textColor),
-                  decoration: InputDecoration(
-                    labelText: "Player Name",
-                    labelStyle: const TextStyle(color: textSecondaryColor),
-                    filled: true,
-                    fillColor: bgColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                title: const Text(
+                  "Edit Member",
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: uidController,
-                  style: const TextStyle(color: textColor),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Player UID",
-                    labelStyle: const TextStyle(color: textSecondaryColor),
-                    filled: true,
-                    fillColor: bgColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      style: const TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        labelText: "Player Name",
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: bgColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: uidController,
+                      style: const TextStyle(color: textColor),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Player UID",
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: bgColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRoleDropdown(selectedRole, (value) {
+                      setDialogState(() => selectedRole = value);
+                    }),
+                  ],
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: accentColor),
-                onPressed: () {
-                  final name = nameController.text.trim();
-                  final uid = uidController.text.trim();
-                  if (name.isNotEmpty) {
-                    final updatedMembers = List<TeamMember>.from(_team.members)
-                      ..add(TeamMember(
-                        playerName: name,
-                        playerUid: uid.isEmpty ? '-' : uid,
-                        role: "Member",
-                      ));
-                    _saveTeam(_team.copyWith(members: updatedMembers));
-                  }
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text("Add", style: TextStyle(color: Colors.white)),
-              ),
-            ],
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      _deleteMember(index);
+                      Navigator.pop(dialogContext);
+                    },
+                    child: const Text("Delete", style: TextStyle(color: Color(0xFFFF5252))),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                    onPressed: () {
+                      final name = nameController.text.trim();
+                      final uid = uidController.text.trim();
+                      if (name.isNotEmpty) {
+                        final updatedMembers = List<TeamMember>.from(_team.members);
+                        updatedMembers[index] = member.copyWith(
+                          playerName: name,
+                          playerUid: uid.isEmpty ? '-' : uid,
+                          role: selectedRole,
+                          isCaptain: selectedRole == "Captain",
+                        );
+                        _saveTeam(_team.copyWith(members: updatedMembers));
+                      }
+                      Navigator.pop(dialogContext);
+                    },
+                    child: const Text("Save", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              );
+            },
           );
         },
       );
@@ -239,327 +206,392 @@ class _MyTeamPageState extends State<MyTeamPage> {
     }
   }
 
-  Future<void> _editMyProfile() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-    );
+  Future<void> _showAddMemberDialog() async {
+    final nameController = TextEditingController();
+    final uidController = TextEditingController();
+    String selectedRole = _roles[2]; // Default to "Member"
 
-    if (!mounted) return;
-
-    // Player data may have changed inside EditProfileScreen (name, etc.).
-    // Sync the matching team member entry so the roster stays up to date.
-    final index = _team.members.indexWhere(_isCurrentUser);
-    if (index != -1) {
-      final updatedMembers = List<TeamMember>.from(_team.members);
-      updatedMembers[index] = updatedMembers[index].copyWith(
-        playerName: player.name,
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                title: const Text(
+                  "Add Member",
+                  style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      autofocus: true,
+                      style: const TextStyle(color: textColor),
+                      decoration: InputDecoration(
+                        labelText: "Player Name",
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: bgColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: uidController,
+                      style: const TextStyle(color: textColor),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Player UID",
+                        labelStyle: const TextStyle(color: textSecondaryColor),
+                        filled: true,
+                        fillColor: bgColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRoleDropdown(selectedRole, (value) {
+                      setDialogState(() => selectedRole = value);
+                    }),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text("Cancel", style: TextStyle(color: textSecondaryColor)),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                    onPressed: () {
+                      final name = nameController.text.trim();
+                      final uid = uidController.text.trim();
+                      if (name.isNotEmpty) {
+                        final updatedMembers = List<TeamMember>.from(_team.members)
+                          ..add(TeamMember(
+                            playerName: name,
+                            playerUid: uid.isEmpty ? '-' : uid,
+                            role: selectedRole,
+                            isCaptain: selectedRole == "Captain",
+                          ));
+                        _saveTeam(_team.copyWith(members: updatedMembers));
+                      }
+                      Navigator.pop(dialogContext);
+                    },
+                    child: const Text("Add", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       );
-      _saveTeam(_team.copyWith(members: updatedMembers));
-    } else {
-      setState(() {});
+    } finally {
+      nameController.dispose();
+      uidController.dispose();
     }
+  }
+
+  void _deleteMember(int index) {
+    final updatedMembers = List<TeamMember>.from(_team.members)..removeAt(index);
+    _saveTeam(_team.copyWith(members: updatedMembers));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Member removed"),
+        backgroundColor: Color(0xFF00E676),
+      ),
+    );
+  }
+
+  Widget _buildRoleDropdown(String selectedRole, Function(String) onChanged) {
+    // Ensure selectedRole exists in _roles, fallback to first role if not
+    final validRole = _roles.contains(selectedRole) ? selectedRole : _roles[0];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: DropdownButton<String>(
+        value: validRole,
+        isExpanded: true,
+        underline: const SizedBox(),
+        style: const TextStyle(color: textColor),
+        dropdownColor: surfaceColor,
+        onChanged: (value) {
+          if (value != null) onChanged(value);
+        },
+        items: _roles.map((role) {
+          return DropdownMenuItem(
+            value: role,
+            child: Text(role),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final team = TeamData.getTeam();
+
+    if (team == null) {
+      return Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: surfaceColor,
+          elevation: 0,
+          title: const Text(
+            "Team Details",
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+        ),
+        body: const Center(
+          child: Text(
+            "No Team Data Found",
+            style: TextStyle(color: textSecondaryColor, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: surfaceColor,
         elevation: 0,
-        title: const Text(
-          "My Team",
-          style: TextStyle(
+        title: Text(
+          team.teamName,
+          style: const TextStyle(
             color: textColor,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: _showEditTeamDialog,
-            tooltip: "Edit Team",
-            icon: const Icon(Icons.edit_rounded, color: accentColor),
-          ),
           IconButton(
             onPressed: _showAddMemberDialog,
             tooltip: "Add Member",
-            icon: const Icon(Icons.add_rounded, color: accentColor),
+            icon: const Icon(Icons.person_add_rounded, color: accentColor),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ElevatedButton.icon(
+              onPressed: _showEditTeamDialog,
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              label: const Text("Edit"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(64, 36),
+                maximumSize: const Size(120, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: ListView(
+      body: Padding(
         padding: const EdgeInsets.all(16),
-        children: [
-          // Team Header (real team + user data)
-          _buildTeamHeader(),
-          const SizedBox(height: 20),
-
-          // Team Stats
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  "${_team.members.length}",
-                  "Members",
-                  accentColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  _formatNumber(player.wins),
-                  "Wins",
-                  accentSecondary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  player.rank,
-                  "Rank",
-                  const Color(0xFFFFD166),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Team Members Section
-          _buildSectionHeader("Members"),
-          const SizedBox(height: 12),
-          ...List.generate(_team.members.length, (index) {
-            final member = _team.members[index];
-            final isMe = _isCurrentUser(member);
-            final color = isMe
-                ? accentColor
-                : _memberColors[index % _memberColors.length];
-            return _buildTeamMember(member, color, isMe);
-          }),
-          const SizedBox(height: 24),
-
-          // Tournaments Participated
-          _buildSectionHeader("Recent Tournaments"),
-          const SizedBox(height: 12),
-          _buildTournamentHistory("Free Fire Squad Clash", "🥇 Winner", accentSecondary),
-          _buildTournamentHistory("BGMI Team League", "🥈 2nd Place", const Color(0xFFC0C0C0)),
-          _buildTournamentHistory("Valorant 5v5", "3rd Place", const Color(0xFFCD7F32)),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeamHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: accentColor.withOpacity(0.2),
-            child: const Icon(Icons.shield_rounded, color: accentColor, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _team.teamName,
-                  style: const TextStyle(
-                    color: textColor,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "Captain: $_captainName",
-                  style: const TextStyle(
-                    color: textSecondaryColor,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: _showEditTeamDialog,
-            tooltip: "Edit Team",
-            icon: const Icon(Icons.edit_rounded, color: accentColor, size: 20),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String value, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: textSecondaryColor,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeamMember(
-    TeamMember member,
-    Color color,
-    bool isMe,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: color.withOpacity(0.2),
-            child: Icon(Icons.person, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  member.playerName,
-                  style: const TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  member.role,
-                  style: const TextStyle(
-                    color: textSecondaryColor,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isMe)
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Team Logo
             Container(
-              margin: const EdgeInsets.only(right: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(80),
+                border: Border.all(color: accentColor, width: 2),
               ),
-              child: const Text(
-                "You",
-                style: TextStyle(color: accentColor, fontSize: 11),
+              child: CircleAvatar(
+                radius: 60,
+                backgroundColor: surfaceColor,
+                backgroundImage: team.teamLogo.isNotEmpty
+                    ? FileImage(File(team.teamLogo))
+                    : null,
+                child: team.teamLogo.isEmpty
+                    ? const Icon(Icons.shield_rounded, color: accentColor, size: 40)
+                    : null,
               ),
             ),
-          if (isMe)
-            IconButton(
-              onPressed: _editMyProfile,
-              tooltip: "Edit Profile",
-              icon: const Icon(Icons.edit_rounded, color: accentColor, size: 18),
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              padding: EdgeInsets.zero,
-            ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildTournamentHistory(String title, String result, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.emoji_events, color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  result,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: textSecondaryColor, size: 18),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 24),
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: textColor,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
+            // Team Name
+            Text(
+              team.teamName,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+
+            // Member Count
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                "${team.members.length} Members",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: textSecondaryColor,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Members List
+            Expanded(
+              child: ListView.builder(
+                itemCount: team.members.length,
+                itemBuilder: (context, index) {
+                  final member = team.members[index];
+                  final color = _memberColors[index % _memberColors.length];
+                  final isCurrent = member.playerUid == player.uid;
+
+                  return GestureDetector(
+                    onTap: () => _showEditMemberDialog(index, member),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: color.withOpacity(0.2),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: color.withOpacity(0.2),
+                            child: Text(
+                              "${index + 1}",
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        member.playerName,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    if (member.isCaptain)
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accentSecondary.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          "Captain",
+                                          style: TextStyle(
+                                            color: accentSecondary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    if (isCurrent)
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          "You",
+                                          style: TextStyle(
+                                            color: accentColor,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "UID: ${member.playerUid}",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: textSecondaryColor,
+                                      ),
+                                    ),
+                                    Text(
+                                      "Role: ${member.role}",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: textSecondaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () => _showEditMemberDialog(index, member),
+                            icon: const Icon(Icons.edit_rounded, color: accentColor, size: 20),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
