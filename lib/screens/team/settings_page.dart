@@ -1,3 +1,4 @@
+import 'package:eposrtplay/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 
 // Color Scheme
@@ -169,7 +170,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()));
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Logged out successfully"), backgroundColor: Color(0xFF00E676)),
               );
