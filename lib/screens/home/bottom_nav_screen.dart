@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../team/home_page.dart';
 import '../tournament/tournament_screen.dart';
-import '../player/player_profile_screen.dart';
+import '../player/join_as_player.dart';
 import '../team/join_as_team.dart';
 
 class BottomNavScreen extends StatefulWidget {
@@ -33,7 +33,7 @@ class _BottomNavScreenState extends State<BottomNavScreen>
     _NavItem(
       icon: Icons.person,
       label: "Profile",
-      page: PlayerProfileScreen(),
+      page: JoinAsPlayerForm(),
       notificationCount: 0,
     ),
     _NavItem(
