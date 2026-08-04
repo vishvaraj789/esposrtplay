@@ -35,6 +35,4 @@ Player player = Player(
   ],
 
   profileImage: "assets/images/download.jpeg",
-
-
 );
