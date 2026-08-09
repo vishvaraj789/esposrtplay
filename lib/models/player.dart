@@ -1,32 +1,54 @@
+class PlayerData {
+  final String username;
+  final String phone;
+  final String playerUid;
+  final String age;
+  final String location;
+  final String bio;
+  final String role;
+  final String gameMode;
+
+  PlayerData({
+    required this.username,
+    required this.phone,
+    required this.playerUid,
+    required this.age,
+    required this.location,
+    required this.bio,
+    required this.role,
+    required this.gameMode,
+  });
+}
+
+/// Full player profile with stats, used for the profile screen and
+/// for identifying the current logged-in player (see data/player_data.dart).
 class Player {
-  String name;
-  String email;
+  final String name;
+  final String email;
   final String uid;
   final String rank;
-
-  String team;
-  String country;
-  String bio;
+  final String team;
+  final String country;
+  final String bio;
 
   final int level;
   final int matches;
   final int wins;
   final int kills;
   final int headshots;
+
+  final double kd;
+
   final int tournamentWins;
   final int mvp;
   final int totalDamage;
 
-  final double kd;
-
-  String favoriteWeapon;
-  String favoriteMap;
-  String favoriteMode;
-
+  final String favoriteWeapon;
+  final String favoriteMap;
+  final String favoriteMode;
   final String guild;
 
   final List<String> achievements;
-
   final String profileImage;
 
   Player({
