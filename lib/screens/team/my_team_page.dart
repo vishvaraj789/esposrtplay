@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/player_data.dart';
 import '../../data/team_data.dart';
 import '../../models/team.dart';
 import '../../models/team_member.dart';
@@ -464,7 +463,6 @@ class _MyTeamPageState extends State<MyTeamPage> {
                 itemBuilder: (context, index) {
                   final member = team.members[index];
                   final color = _memberColors[index % _memberColors.length];
-                  final isCurrent = member.playerUid == player.uid;
 
                   return GestureDetector(
                     onTap: () => _showEditMemberDialog(index, member),
@@ -525,26 +523,6 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                           "Captain",
                                           style: TextStyle(
                                             color: accentSecondary,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    if (isCurrent)
-                                      Container(
-                                        margin: const EdgeInsets.only(left: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: accentColor.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text(
-                                          "You",
-                                          style: TextStyle(
-                                            color: accentColor,
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),

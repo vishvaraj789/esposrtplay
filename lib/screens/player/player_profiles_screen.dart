@@ -1,134 +1,143 @@
 import 'package:flutter/material.dart';
-
-import '../../data/team_data.dart';
 import '../../models/player.dart';
+import 'player_home_screen.dart';
+class PlayerProfilesScreen extends StatefulWidget{
+  const PlayerProfilesScreen({super.key,
+    this.playerData});
 
-import '../../models/team_member.dart';
-import 'player_list.dart';
-
-class PlayerProfilesScreen extends StatefulWidget {
   final PlayerData? playerData;
-
-  const PlayerProfilesScreen({
-    super.key,
-    this.playerData,
-  });
 
   @override
   State<PlayerProfilesScreen> createState() => _PlayerProfilesScreenState();
 }
 
-class _PlayerProfilesScreenState extends State<PlayerProfilesScreen> {
-  final Set<String> invitedPlayers = {};
+class _PlayerProfilesScreenState extends State<PlayerProfilesScreen>{
 
-  void _invitePlayer(Player player) {
-    final team = TeamData.getTeam();
-
-    if (team == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("No team found. Please create a team first."),
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text("Player Profiles"),
+          centerTitle: true,
         ),
-      );
-      return;
-    }
 
-    final alreadyExists =
-    team.members.any((m) => m.playerUid == player.uid);
+        body: widget.playerData == null
+            ? const Center(
+          child: Text(
+            "No player data available.",
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        )
+            : ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                color: Colors.white10,
+                margin: const EdgeInsets.only(bottom: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 32,
+                            backgroundColor: Colors.deepPurpleAccent,
+                            child: Icon(Icons.person, color: Colors.white, size: 32),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.playerData!.username,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "UID: ${widget.playerData!.playerUid}",
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
 
-    if (alreadyExists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("${player.name} is already in your team."),
-        ),
-      );
-      return;
-    }
+                      const Divider(height: 32, color: Colors.white24),
+                      _ProfileRow(label: "Role", value: widget.playerData!.role),
+                      _ProfileRow(label: "Game Mode", value: widget.playerData!.gameMode),
+                      _ProfileRow(label: "Age", value: widget.playerData!.age),
+                      _ProfileRow(label: "Location", value: widget.playerData!.location),
+                      _ProfileRow(label: "Phone", value: widget.playerData!.phone),
+                      if (widget.playerData!.bio.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Bio",
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.playerData!.bio,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
 
-    final members = List<TeamMember>.from(team.members);
+                      ElevatedButton.icon(onPressed: (){
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) => const PlayerHomeScreen()));
+                      }, label: const Text("home"))
+                    ],
+                  ),
+                ),
+              ),
 
-    members.add(
-      TeamMember(
-        playerName: player.name,
-        playerUid: player.uid,
-        role: "Member",
-        isCaptain: false,
-      ),
-    );
-
-    TeamData.saveTeam(
-      team.copyWith(members: members),
-    );
-
-    setState(() {
-      invitedPlayers.add(player.uid);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${player.name} invited successfully."),
-      ),
+            ]
+        )
     );
   }
+}
+
+class _ProfileRow extends StatelessWidget {
+  const _ProfileRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Find Players"),
-        centerTitle: true,
-      ),
-      body: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
         children: [
-          if (widget.playerData != null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                "Welcome ${widget.playerData!.username}",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
             ),
-
+          ),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: allPlayers.length,
-              separatorBuilder: (_, __) =>
-              const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final player = allPlayers[index];
-                final invited =
-                invitedPlayers.contains(player.uid);
-
-                return Card(
-                  elevation: 3,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(
-                        player.name[0].toUpperCase(),
-                      ),
-                    ),
-                    title: Text(player.name),
-                    subtitle: Text(
-                      "UID: ${player.uid}\n"
-                          "Rank: ${player.rank}\n"
-                          "K/D: ${player.kd}",
-                    ),
-                    isThreeLine: true,
-                    trailing: ElevatedButton(
-                      onPressed: invited
-                          ? null
-                          : () => _invitePlayer(player),
-                      child: Text(
-                        invited ? "Invited" : "Invite",
-                      ),
-                    ),
-                  ),
-                );
-              },
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
         ],
