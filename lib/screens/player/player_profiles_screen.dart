@@ -100,10 +100,18 @@ class _PlayerProfilesScreenState extends State<PlayerProfilesScreen>{
                       ],
                       const SizedBox(height: 16),
 
-                      ElevatedButton.icon(onPressed: (){
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (context) => const PlayerHomeScreen()));
-                      }, label: const Text("home"))
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.home_outlined, color: Colors.white),
+                        onPressed: (){
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PlayerHomeScreen(playerData: widget.playerData!),
+                            ),
+                          );
+                        },
+                        label: const Text("home"),
+                      ),
                     ],
                   ),
                 ),
