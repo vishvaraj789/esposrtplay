@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class GoogleLoginButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const GoogleLoginButton({
     super.key,

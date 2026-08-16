@@ -1,23 +1,26 @@
 import 'package:eposrtplay/screens/player/choose_role_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'register_screen.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/google_login_button.dart';
 import '../../core/widgets/facebook_login_button.dart';
-import '../../core/widgets/appleid_login_button.dart';
-
+// import '../../core/widgets/appleid_login_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState( ) => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -25,11 +28,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool obscurePassword = true;
   bool rememberMe = false;
   bool isLoginEnabled = false;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-
     emailController.addListener(checkFields);
     passwordController.addListener(checkFields);
   }
@@ -38,7 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       isLoginEnabled =
           emailController.text.trim().isNotEmpty &&
-              passwordController.text.trim().isNotEmpty;
+              passwordController.text.trim().isNotEmpty &&
+              !isLoading;
     });
   }
 
@@ -46,29 +50,129 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     emailController.removeListener(checkFields);
     passwordController.removeListener(checkFields);
-
     emailController.dispose();
     passwordController.dispose();
-
     super.dispose();
   }
 
-  void login() {
+  // Email/Password Login
+  void login() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Login Successful ✅"),
-        ),
-      );
+      setState(() => isLoading = true);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ChooseRoleScreen(),
-        ),
-      );
+      try {
+        await _auth.signInWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Login Successful ✅")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChooseRoleScreen(),
+            ),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = "Login failed";
+
+        if (e.code == 'user-not-found') {
+          errorMessage = "No user found with this email";
+        } else if (e.code == 'wrong-password') {
+          errorMessage = "Wrong password";
+        } else if (e.code == 'invalid-email') {
+          errorMessage = "Invalid email format";
+        } else if (e.code == 'user-disabled') {
+          errorMessage = "This account has been disabled";
+        } else if (e.code == 'too-many-requests') {
+          errorMessage = "Too many login attempts. Try again later";
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e")),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+      }
     }
   }
+
+  // Google Sign-In
+  void loginWithGoogle() {
+    if (isLoading) return;
+
+    _handleGoogleSignIn();
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => isLoading = true);
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        await _auth.signInWithCredential(credential);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChooseRoleScreen(),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google login failed: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  void loginWithFacebook() {
+    if (isLoading) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Facebook login coming soon")),
+    );
+  }
+
+  // void loginWithApple() {
+  //   if (isLoading) return;
+  //
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text("Apple sign-in coming soon")),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -85,15 +189,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-
                 const Icon(
                   Icons.sports_esports,
                   size: 90,
                   color: Colors.blue,
                 ),
-
                 const SizedBox(height: 20),
-
                 const Text(
                   "EsportPlay",
                   style: TextStyle(
@@ -101,9 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 const Text(
                   "Free Fire Max Tournament Platform",
                   textAlign: TextAlign.center,
@@ -112,9 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontSize: 16,
                   ),
                 ),
-
                 const SizedBox(height: 30),
-
                 CustomTextField(
                   controller: emailController,
                   label: "Email",
@@ -124,21 +221,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return "Please enter your email";
                     }
-
                     final emailRegex = RegExp(
                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                     );
-
                     if (!emailRegex.hasMatch(value)) {
                       return "Please enter a valid email";
                     }
-
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 20),
-
                 CustomTextField(
                   controller: passwordController,
                   label: "Password",
@@ -161,17 +253,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return "Please enter your password";
                     }
-
                     if (value.length < 6) {
                       return "Password must be at least 6 characters";
                     }
-
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 15),
-
                 Row(
                   children: [
                     Checkbox(
@@ -182,11 +270,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       },
                     ),
-
                     const Text("Remember Me"),
-
                     const Spacer(),
-
                     TextButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,44 +286,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 25),
-
                 PrimaryButton(
-                  text: "Login",
+                  text: isLoading ? "Logging in..." : "Login",
                   icon: Icons.login,
-                  onPressed: isLoginEnabled ? login : null,
+                  onPressed: (isLoginEnabled && !isLoading) ? login : null,
                 ),
-
                 const SizedBox(height: 15),
                 GoogleLoginButton(
-                  onPressed: () {
-                    print("Google Login");
-                  },
+                  onPressed: !isLoading ? loginWithGoogle : null,
                 ),
 
-                const SizedBox(height: 15),
                 FacebookLoginButton(
-                  onPressed: () {
-                    print("Facebook Login");
-                  },
+                  onPressed: !isLoading ? loginWithFacebook : null,
                 ),
-
-                AppleLoginButton(
-                  onPressed: () {
-                    print("Apple Sign In");
-                  },
-                ),
+                //
+                // AppleLoginButton(
+                //   onPressed: !isLoading ? loginWithApple : null,
+                // ),
                 const SizedBox(height: 15),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Don't have an account?",
-                    ),
+                    const Text("Don't have an account?"),
                     TextButton(
-                      onPressed: () {
+                      onPressed: !isLoading
+                          ? () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -246,7 +319,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             const RegisterScreen(),
                           ),
                         );
-                      },
+                      }
+                          : null,
                       child: const Text("Register"),
                     ),
                   ],
