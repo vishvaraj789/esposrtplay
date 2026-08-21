@@ -30,7 +30,6 @@ class MyApp extends StatelessWidget {
           if(asyncSnapshot.connectionState == ConnectionState.waiting){
             return const Center(child: CircularProgressIndicator());
           }
-
           if(asyncSnapshot.data != null){
             return const ChooseRoleScreen();
           }
