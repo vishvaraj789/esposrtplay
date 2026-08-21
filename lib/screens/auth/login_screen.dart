@@ -8,13 +8,12 @@ import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/google_login_button.dart';
 import '../../core/widgets/facebook_login_button.dart';
-// import '../../core/widgets/appleid_login_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState( ) => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -115,7 +114,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // Google Sign-In
   void loginWithGoogle() {
     if (isLoading) return;
-
     _handleGoogleSignIn();
   }
 
@@ -165,14 +163,6 @@ class _LoginScreenState extends State<LoginScreen> {
       const SnackBar(content: Text("Facebook login coming soon")),
     );
   }
-
-  // void loginWithApple() {
-  //   if (isLoading) return;
-  //
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(content: Text("Apple sign-in coming soon")),
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -296,14 +286,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 GoogleLoginButton(
                   onPressed: !isLoading ? loginWithGoogle : null,
                 ),
-
+                const SizedBox(height: 15),
                 FacebookLoginButton(
                   onPressed: !isLoading ? loginWithFacebook : null,
                 ),
-                //
-                // AppleLoginButton(
-                //   onPressed: !isLoading ? loginWithApple : null,
-                // ),
                 const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
