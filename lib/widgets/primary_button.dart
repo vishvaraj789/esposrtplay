@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
-class GoogleLoginButton extends StatelessWidget {
+class PrimaryButton extends StatelessWidget {
+  final String text;
+  final IconData? icon;
   final VoidCallback? onPressed;
 
-  const GoogleLoginButton({
+  const PrimaryButton({
     super.key,
+    required this.text,
+    this.icon,
     required this.onPressed,
   });
 
@@ -12,12 +16,13 @@ class GoogleLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 55,
-      child: OutlinedButton(
+      height: 50,
+      child: ElevatedButton(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.white24),
-          backgroundColor: const Color(0xFF1E1E1E),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.blue.withOpacity(0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -25,17 +30,14 @@ class GoogleLoginButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              "https://developers.google.com/identity/images/g-logo.png",
-              height: 24,
-              width: 24,
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              "Continue with Google",
-              style: TextStyle(
+            if (icon != null) ...[
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              text,
+              style: const TextStyle(
                 fontSize: 16,
-                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -1,21 +1,17 @@
-import 'package:eposrtplay/screens/team/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../core/widgets/custom_text_field.dart';
-import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/google_login_button.dart';
-import '../../core/widgets/facebook_login_button.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/primary_button.dart';
 import 'login_screen.dart';
-
+import '../user_form.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
-
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -130,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const HomePage(),
+              builder: (context) => const UserForm(),
             ),
           );
         }

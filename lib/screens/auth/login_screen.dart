@@ -1,13 +1,13 @@
-import 'package:eposrtplay/screens/player/choose_role_screen.dart';
+
+import 'package:eposrtplay/screens/user_form.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'register_screen.dart';
-import '../../core/widgets/custom_text_field.dart';
-import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/google_login_button.dart';
-import '../../core/widgets/facebook_login_button.dart';
+
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/primary_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const ChooseRoleScreen(),
+              builder: (context) => const UserForm(),
             ),
           );
         }
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const ChooseRoleScreen(),
+              builder: (context) => const UserForm(),
             ),
           );
         }
@@ -314,6 +314,95 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class GoogleLoginButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const GoogleLoginButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.grey),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.network(
+              'https://www.google.com/favicon.ico',
+              height: 20,
+              width: 20,
+              errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.g_mobiledata, size: 24, color: Colors.red),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              "Continue with Google",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FacebookLoginButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const FacebookLoginButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1877F2),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.facebook, size: 22),
+            SizedBox(width: 10),
+            Text(
+              "Continue with Facebook",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
