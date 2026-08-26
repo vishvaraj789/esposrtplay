@@ -1,4 +1,3 @@
-
 import 'package:eposrtplay/screens/user_form.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'register_screen.dart';
 
+import '../home/main_navigation.dart';
+import '../service/user_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/primary_button.dart';
 
@@ -54,13 +55,32 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Routes the user forward after a successful sign-in: straight into
+  /// the app if their profile already exists, or to UserForm if this is
+  /// their first time completing it. Prevents UserForm from reappearing
+  /// on every subsequent login.
+  Future<void> _routeAfterSignIn(String uid) async {
+    if (!mounted) return;
+
+    final hasProfile = await UserService.instance.hasProfile(uid);
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+        hasProfile ? const MainNavigation() : const UserForm(),
+      ),
+    );
+  }
+
   // Email/Password Login
   void login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => isLoading = true);
 
       try {
-        await _auth.signInWithEmailAndPassword(
+        final credential = await _auth.signInWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
@@ -69,13 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Login Successful ✅")),
           );
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const UserForm(),
-            ),
-          );
+          await _routeAfterSignIn(credential.user!.uid);
         }
       } on FirebaseAuthException catch (e) {
         String errorMessage = "Login failed";
@@ -132,15 +146,10 @@ class _LoginScreenState extends State<LoginScreen> {
           idToken: googleAuth.idToken,
         );
 
-        await _auth.signInWithCredential(credential);
+        final userCredential = await _auth.signInWithCredential(credential);
 
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const UserForm(),
-            ),
-          );
+          await _routeAfterSignIn(userCredential.user!.uid);
         }
       }
     } catch (e) {
@@ -166,160 +175,284 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("EsportPlay"),
-        centerTitle: true,
-      ),
+      backgroundColor: const Color(0xFFF7F8FC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                const Icon(
-                  Icons.sports_esports,
-                  size: 90,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "EsportPlay",
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Branded header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Free Fire Max Tournament Platform",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                CustomTextField(
-                  controller: emailController,
-                  label: "Email",
-                  hint: "Enter your email",
-                  icon: Icons.email,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter your email";
-                    }
-                    final emailRegex = RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    );
-                    if (!emailRegex.hasMatch(value)) {
-                      return "Please enter a valid email";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                CustomTextField(
-                  controller: passwordController,
-                  label: "Password",
-                  hint: "Enter your password",
-                  icon: Icons.lock,
-                  obscureText: obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        obscurePassword = !obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter your password";
-                    }
-                    if (value.length < 6) {
-                      return "Password must be at least 6 characters";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-                Row(
+                child: Column(
                   children: [
-                    Checkbox(
-                      value: rememberMe,
-                      onChanged: (value) {
-                        setState(() {
-                          rememberMe = value ?? false;
-                        });
-                      },
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.sports_esports,
+                        size: 56,
+                        color: Colors.white,
+                      ),
                     ),
-                    const Text("Remember Me"),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Forgot Password feature coming soon!",
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text("Forgot Password?"),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "EsportPlay",
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Free Fire Max Tournament Platform",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 25),
-                PrimaryButton(
-                  text: isLoading ? "Logging in..." : "Login",
-                  icon: Icons.login,
-                  onPressed: (isLoginEnabled && !isLoading) ? login : null,
+              ),
+
+              // Form card, overlapping the header slightly for a layered look
+              Transform.translate(
+                offset: const Offset(0, -28),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Welcome back",
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Log in to join tournaments and manage your squad.",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        CustomTextField(
+                          controller: emailController,
+                          label: "Email",
+                          hint: "Enter your email",
+                          icon: Icons.email,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Please enter your email";
+                            }
+                            final emailRegex = RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            );
+                            if (!emailRegex.hasMatch(value)) {
+                              return "Please enter a valid email";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          controller: passwordController,
+                          label: "Password",
+                          hint: "Enter your password",
+                          icon: Icons.lock,
+                          obscureText: obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.grey[500],
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                obscurePassword = !obscurePassword;
+                              });
+                            },
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Please enter your password";
+                            }
+                            if (value.length < 6) {
+                              return "Password must be at least 6 characters";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+
+                        Row(
+                          children: [
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Checkbox(
+                                value: rememberMe,
+                                activeColor: const Color(0xFFFF3D5A),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    rememberMe = value ?? false;
+                                  });
+                                },
+                              ),
+                            ),
+                            const Text(
+                              "Remember me",
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 0),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Forgot Password feature coming soon!",
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                "Forgot password?",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFFF3D5A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        PrimaryButton(
+                          text: isLoading ? "Logging in..." : "Login",
+                          icon: Icons.login,
+                          onPressed: (isLoginEnabled && !isLoading) ? login : null,
+                        ),
+                        const SizedBox(height: 24),
+
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                "OR CONTINUE WITH",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        GoogleLoginButton(
+                          onPressed: !isLoading ? loginWithGoogle : null,
+                        ),
+                        const SizedBox(height: 12),
+                        FacebookLoginButton(
+                          onPressed: !isLoading ? loginWithFacebook : null,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 15),
-                GoogleLoginButton(
-                  onPressed: !isLoading ? loginWithGoogle : null,
-                ),
-                const SizedBox(height: 15),
-                FacebookLoginButton(
-                  onPressed: !isLoading ? loginWithFacebook : null,
-                ),
-                const SizedBox(height: 15),
-                Row(
+              ),
+
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account?"),
+                    Text(
+                      "Don't have an account?",
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
                     TextButton(
                       onPressed: !isLoading
                           ? () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                            const RegisterScreen(),
+                            builder: (context) => const RegisterScreen(),
                           ),
                         );
                       }
                           : null,
-                      child: const Text("Register"),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      child: const Text(
+                        "Register",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFFF3D5A),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
-
 
 class GoogleLoginButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -333,13 +466,13 @@ class GoogleLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.grey),
+          side: BorderSide(color: Colors.grey[300]!),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
         child: Row(
@@ -356,8 +489,8 @@ class GoogleLoginButton extends StatelessWidget {
             const Text(
               "Continue with Google",
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
@@ -380,14 +513,15 @@ class FacebookLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1877F2),
           foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
         child: Row(
@@ -398,8 +532,8 @@ class FacebookLoginButton extends StatelessWidget {
             Text(
               "Continue with Facebook",
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

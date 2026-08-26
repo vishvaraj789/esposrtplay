@@ -13,6 +13,10 @@ class UserService {
   /// Called right after FirebaseAuth.createUserWithEmailAndPassword succeeds.
   /// Saves the extra profile fields your form collects that Firebase Auth
   /// itself doesn't store (UID game ID, nickname, role, etc.).
+  ///
+  /// Throws a [StateError] if a profile already exists for this uid, so a
+  /// user can never accidentally submit UserForm twice and overwrite their
+  /// original data.
   Future<void> createUserProfile({
     required String uid,
     required String fullName,
@@ -22,14 +26,27 @@ class UserService {
     required String role,
     String? inGameRole,
   }) async {
-    await _usersRef.doc(uid).set({
-      'fullName': fullName,
-      'email': email,
-      'freeFireUid': freeFireUid,
-      'nickname': nickname,
-      'role': role,
-      'inGameRole': inGameRole,
-      'createdAt': FieldValue.serverTimestamp(),
+    final docRef = _usersRef.doc(uid);
+
+    // Use a transaction so the existence check and the write happen
+    // atomically — this closes the race where two rapid submits (e.g.
+    // double-tapping the button) could both pass an existence check
+    // before either one has written.
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (snapshot.exists) {
+        throw StateError('A profile already exists for this account.');
+      }
+
+      transaction.set(docRef, {
+        'fullName': fullName,
+        'email': email,
+        'freeFireUid': freeFireUid,
+        'nickname': nickname,
+        'role': role,
+        'inGameRole': inGameRole,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 

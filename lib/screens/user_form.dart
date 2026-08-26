@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'service/user_service.dart';
+import '../screens/service/user_service.dart';
 
 /// Collects the extra profile fields not covered by Firebase Auth.
 /// Expects the user to already be signed in (e.g. right after the
@@ -74,6 +74,11 @@ class _UserFormState extends State<UserForm> {
 
       if (!mounted) return;
 
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+    } on StateError {
+      // Profile already exists for this account — don't treat this as a
+      // failure, just move the user forward instead of overwriting data.
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } catch (e) {
       if (!mounted) return;
