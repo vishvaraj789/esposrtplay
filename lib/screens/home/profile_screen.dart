@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../service/user_service.dart';
 
@@ -32,7 +33,17 @@ class ProfileScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     try {
-      await FirebaseAuth.instance.signOut();
+      // Sign out of Firebase Auth (ends the app session) AND GoogleSignIn
+      // (clears the cached Google account). Without the second call, the
+      // GoogleSignIn plugin keeps a silent session cached on-device, so a
+      // future "Continue with Google" tap can skip the account picker
+      // entirely or default back to whichever account was used last —
+      // which looks like "it's remembering all my emails."
+      await Future.wait([
+        FirebaseAuth.instance.signOut(),
+        GoogleSignIn.instance.signOut(),
+      ]);
+
       if (!context.mounted) return;
 
       // Replaces the entire navigation stack so the user can't

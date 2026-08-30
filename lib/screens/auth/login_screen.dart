@@ -20,7 +20,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -29,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool rememberMe = false;
   bool isLoginEnabled = false;
   bool isLoading = false;
+  bool isGoogleLoading = false;
 
   @override
   void initState() {
@@ -127,30 +127,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Google Sign-In
   void loginWithGoogle() {
-    if (isLoading) return;
+    if (isGoogleLoading || isLoading) return;
     _handleGoogleSignIn();
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() => isLoading = true);
+    setState(() => isGoogleLoading = true);
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // v7+: authenticate() replaces signIn() and triggers the system
+      // account picker / Credential Manager sheet.
+      final GoogleSignInAccount googleUser =
+      await GoogleSignIn.instance.authenticate();
 
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+      // v7+: .authentication is now synchronous and only exposes idToken.
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      if (mounted) {
+        await _routeAfterSignIn(userCredential.user!.uid);
+      }
+    } on GoogleSignInException catch (e) {
+      // Includes the user simply canceling the picker — don't show that
+      // as a scary error.
+      if (mounted && e.code != GoogleSignInExceptionCode.canceled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google login failed: ${e.description}")),
         );
-
-        final userCredential = await _auth.signInWithCredential(credential);
-
-        if (mounted) {
-          await _routeAfterSignIn(userCredential.user!.uid);
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -160,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() => isGoogleLoading = false);
       }
     }
   }
@@ -374,7 +382,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         PrimaryButton(
                           text: isLoading ? "Logging in..." : "Login",
                           icon: Icons.login,
-                          onPressed: (isLoginEnabled && !isLoading) ? login : null,
+                          onPressed: (isLoginEnabled && !isLoading && !isGoogleLoading)
+                              ? login
+                              : null,
                         ),
                         const SizedBox(height: 24),
 
@@ -399,11 +409,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 20),
 
                         GoogleLoginButton(
-                          onPressed: !isLoading ? loginWithGoogle : null,
+                          isLoading: isGoogleLoading,
+                          onPressed: (!isLoading && !isGoogleLoading)
+                              ? loginWithGoogle
+                              : null,
                         ),
                         const SizedBox(height: 12),
                         FacebookLoginButton(
-                          onPressed: !isLoading ? loginWithFacebook : null,
+                          onPressed: (!isLoading && !isGoogleLoading)
+                              ? loginWithFacebook
+                              : null,
                         ),
                       ],
                     ),
@@ -456,10 +471,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class GoogleLoginButton extends StatelessWidget {
   final VoidCallback? onPressed;
+  final bool isLoading;
 
   const GoogleLoginButton({
     super.key,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   @override
@@ -468,23 +485,27 @@ class GoogleLoginButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: Colors.grey[300]!),
+          disabledForegroundColor: Colors.black87,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: Row(
+        child: isLoading
+            ? const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+          ),
+        )
+            : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              'https://www.google.com/favicon.ico',
-              height: 20,
-              width: 20,
-              errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.g_mobiledata, size: 24, color: Colors.red),
-            ),
+            const _GoogleLogo(size: 20),
             const SizedBox(width: 10),
             const Text(
               "Continue with Google",
@@ -499,6 +520,57 @@ class GoogleLoginButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Google's "G" logo, drawn locally with CustomPaint instead of fetched
+/// from the network. This avoids the icon flickering in, failing to load
+/// on slow/offline connections, or briefly showing a fallback icon —
+/// all of which undermine trust in a sign-in button specifically.
+class _GoogleLogo extends StatelessWidget {
+  final double size;
+
+  const _GoogleLogo({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+    final strokeWidth = size.width * 0.22;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    final rect = Rect.fromCircle(radius: radius - strokeWidth / 2, center: center);
+
+    // Four arcs approximating Google's brand colors, in order.
+    paint.color = const Color(0xFF4285F4); // blue
+    canvas.drawArc(rect, -0.45, 1.55, false, paint);
+
+    paint.color = const Color(0xFF34A853); // green
+    canvas.drawArc(rect, 1.15, 1.55, false, paint);
+
+    paint.color = const Color(0xFFFBBC05); // yellow
+    canvas.drawArc(rect, 2.75, 1.1, false, paint);
+
+    paint.color = const Color(0xFFEA4335); // red
+    canvas.drawArc(rect, 3.9, 1.9, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class FacebookLoginButton extends StatelessWidget {
