@@ -23,7 +23,7 @@ class UserService {
     required String email,
     required String freeFireUid,
     required String nickname,
-    required String role,
+    String? role,
     String? inGameRole,
   }) async {
     final docRef = _usersRef.doc(uid);
@@ -45,8 +45,20 @@ class UserService {
         'nickname': nickname,
         'role': role,
         'inGameRole': inGameRole,
+        'walletBalance': 0,
+        'photoUrl': null,
         'createdAt': FieldValue.serverTimestamp(),
       });
+    });
+  }
+
+  /// Adjusts a user's wallet balance by [delta] (positive to add coins,
+  /// negative to spend them). Uses a transaction + increment so concurrent
+  /// updates (e.g. tournament entry fee + prize payout at the same time)
+  /// can't silently overwrite each other.
+  Future<void> adjustWalletBalance(String uid, num delta) async {
+    await _usersRef.doc(uid).update({
+      'walletBalance': FieldValue.increment(delta),
     });
   }
 

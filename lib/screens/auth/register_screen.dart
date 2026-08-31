@@ -20,7 +20,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
@@ -33,7 +32,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    usernameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -51,9 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
-
-        // Update user profile with username
-        await _auth.currentUser?.updateDisplayName(usernameController.text.trim());
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -278,22 +273,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        CustomTextField(
-                          controller: usernameController,
-                          label: "Username",
-                          hint: "Enter username",
-                          icon: Icons.person,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Username is required";
-                            }
-                            if (value.length < 3) {
-                              return "Username must be at least 3 characters";
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
                         CustomTextField(
                           controller: emailController,
                           label: "Email",
