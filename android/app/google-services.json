@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "340849569885",
+    "project_id": "esportplay-b5a0f",
+    "storage_bucket": "esportplay-b5a0f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340849569885:android:6e2b7f1ee791656ffb9db4",
+        "android_client_info": {
+          "package_name": "com.example.eposrtplay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "340849569885-09hcll158462mcfrc9mva6ked0un8rui.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.eposrtplay",
+            "certificate_hash": "8a23f3bd53372b5f5793da026fbb316cb4187e98"
+          }
+        },
+        {
+          "client_id": "340849569885-g5b473tmn858dj78ig7mun19fs7sei4d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMTS7wl5aLcGENQUqU4upsp5W02C2GohM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "340849569885-g5b473tmn858dj78ig7mun19fs7sei4d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "340849569885-ekpojjs53g8d224g882s8u2q5me259od.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.eposrtplay"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
