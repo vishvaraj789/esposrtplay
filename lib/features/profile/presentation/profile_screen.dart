@@ -1,13 +1,15 @@
 import 'package:characters/characters.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../../core/services/user_service.dart';
+import '../provider/profile_provider.dart';
+import '../widgets/stats_card.dart';
 
 /// User profile, match history, settings, and logout.
-/// Reads the current user's profile document live from Firestore.
-class ProfileScreen extends StatelessWidget {
+/// Reads the current user's profile live via currentUserProfileProvider.
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   Future<void> _confirmLogout(BuildContext context) async {
@@ -46,8 +48,7 @@ class ProfileScreen extends StatelessWidget {
       // (clears the cached Google account). Without the second call, the
       // GoogleSignIn plugin keeps a silent session cached on-device, so a
       // future "Continue with Google" tap can skip the account picker
-      // entirely or default back to whichever account was used last —
-      // which looks like "it's remembering all my emails."
+      // entirely or default back to whichever account was used last.
       await Future.wait([
         FirebaseAuth.instance.signOut(),
         GoogleSignIn.instance.signOut(),
@@ -56,12 +57,11 @@ class ProfileScreen extends StatelessWidget {
       if (!context.mounted) return;
       Navigator.of(context).pop(); // close loading dialog
 
-      // Replaces the entire navigation stack so the user can't
-      // press "back" and return to a logged-in screen.
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/login',
-            (route) => false,
-      );
+      // No manual navigation here — GoRouter's redirect (in app_router.dart)
+      // reacts automatically once authStateChanges emits null and sends
+      // the user to Routes.login. A manual Navigator.pushNamed call here
+      // would use the old named-routes API, which this app no longer uses
+      // now that it's on MaterialApp.router + GoRouter.
     } on FirebaseAuthException catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop(); // close loading dialog
@@ -85,44 +85,32 @@ class ProfileScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final profileAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
-      body: uid == null
-          ? const Center(child: Text('Not signed in'))
-          : StreamBuilder<Map<String, dynamic>?>(
-        stream: UserService.instance.watchUserProfile(uid),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+      body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                const SizedBox(height: 12),
+                Text('Something went wrong.\n$e', textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ),
+        data: (profile) {
+          if (profile == null) {
+            return const Center(child: Text('Not signed in'));
           }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: colorScheme.error),
-                    const SizedBox(height: 12),
-                    Text('Something went wrong.\n${snapshot.error}',
-                        textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final profile = snapshot.data;
-          final nickname = profile?['nickname'] as String? ?? 'Player';
-          final fullName = profile?['fullName'] as String? ?? '';
-          final role = profile?['role'] as String? ?? '';
-          final freeFireUid = profile?['freeFireUid'] as String? ?? '';
 
           return CustomScrollView(
             slivers: [
@@ -161,38 +149,43 @@ class ProfileScreen extends StatelessWidget {
                             child: CircleAvatar(
                               radius: 42,
                               backgroundColor: Colors.white.withValues(alpha: 0.2),
-                              child: Text(
-                                _initials(nickname),
+                              backgroundImage: profile.photoUrl != null
+                                  ? NetworkImage(profile.photoUrl!)
+                                  : null,
+                              child: profile.photoUrl == null
+                                  ? Text(
+                                _initials(profile.nickname),
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
-                              ),
+                              )
+                                  : null,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            nickname,
+                            profile.nickname,
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (fullName.isNotEmpty) ...[
+                          if (profile.fullName.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
-                              fullName,
+                              profile.fullName,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.85),
                               ),
                             ),
                           ],
-                          if (role.isNotEmpty) ...[
+                          if (profile.role != null && profile.role!.isNotEmpty) ...[
                             const SizedBox(height: 10),
                             Chip(
                               label: Text(
-                                role,
+                                profile.role!,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -215,14 +208,16 @@ class ProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    if (freeFireUid.isNotEmpty) ...[
+                    StatsCard(matches: profile.matches, wins: profile.wins, rank: profile.rank),
+                    const SizedBox(height: 16),
+                    if (profile.freeFireUid.isNotEmpty) ...[
                       _SectionCard(
                         children: [
                           _ProfileTile(
                             icon: Icons.badge_outlined,
                             iconColor: colorScheme.primary,
                             title: 'Free Fire MAX UID',
-                            subtitle: freeFireUid,
+                            subtitle: profile.freeFireUid,
                           ),
                         ],
                       ),
@@ -230,6 +225,24 @@ class ProfileScreen extends StatelessWidget {
                     ],
                     _SectionCard(
                       children: [
+                        _ProfileTile(
+                          icon: Icons.edit_outlined,
+                          iconColor: colorScheme.primary,
+                          title: 'Edit Profile',
+                          onTap: () {
+                            // TODO: navigate to edit_profile_screen.dart once it's wired into app_router.dart.
+                          },
+                        ),
+                        const Divider(height: 1, indent: 56),
+                        _ProfileTile(
+                          icon: Icons.emoji_events_outlined,
+                          iconColor: colorScheme.primary,
+                          title: 'Achievements',
+                          onTap: () {
+                            // TODO: navigate to achievements_screen.dart once it's wired into app_router.dart.
+                          },
+                        ),
+                        const Divider(height: 1, indent: 56),
                         _ProfileTile(
                           icon: Icons.history,
                           iconColor: colorScheme.primary,
