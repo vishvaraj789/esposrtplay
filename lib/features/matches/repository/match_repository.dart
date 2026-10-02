@@ -9,11 +9,10 @@ class MatchRepository {
 
   CollectionReference<Map<String, dynamic>> get _matches => _firestore.collection('matches');
 
-  // --- Create (admin) ---
-
   Future<String> createMatch({
     required String tournamentId,
     required int round,
+    int matchIndex = 0,
     required String teamAId,
     required String teamAName,
     required String teamBId,
@@ -24,6 +23,7 @@ class MatchRepository {
     final ref = await _matches.add({
       'tournamentId': tournamentId,
       'round': round,
+      'matchIndex': matchIndex,
       'teamAId': teamAId,
       'teamAName': teamAName,
       'teamBId': teamBId,
@@ -40,8 +40,6 @@ class MatchRepository {
     return ref.id;
   }
 
-  // --- Reads ---
-
   Stream<List<MatchModel>> watchUpcomingMatches() {
     return _matches
         .where('status', isEqualTo: MatchStatus.upcoming.name)
@@ -57,12 +55,24 @@ class MatchRepository {
         .map((snap) => snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList());
   }
 
+  /// Matches for a tournament, ordered for correct bracket display:
+  /// by round first, then by matchIndex within that round. Firestore
+  /// can't orderBy two fields without a composite index unless we sort
+  /// the second field client-side, which is cheap for match-list sizes.
   Stream<List<MatchModel>> watchMatchesForTournament(String tournamentId) {
     return _matches
         .where('tournamentId', isEqualTo: tournamentId)
         .orderBy('round')
         .snapshots()
-        .map((snap) => snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList());
+        .map((snap) {
+      final matches = snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList();
+      matches.sort((a, b) {
+        final roundCompare = a.round.compareTo(b.round);
+        if (roundCompare != 0) return roundCompare;
+        return a.matchIndex.compareTo(b.matchIndex);
+      });
+      return matches;
+    });
   }
 
   Stream<MatchModel?> watchMatch(String matchId) {
@@ -71,14 +81,7 @@ class MatchRepository {
     );
   }
 
-  // --- Admin actions ---
-
-  /// Starts the match: reveals room credentials and flips status to live.
-  Future<void> startMatch({
-    required String matchId,
-    required String roomId,
-    required String roomPassword,
-  }) {
+  Future<void> startMatch({required String matchId, required String roomId, required String roomPassword}) {
     return _matches.doc(matchId).update({
       'roomId': roomId,
       'roomPassword': roomPassword,
@@ -86,19 +89,11 @@ class MatchRepository {
     });
   }
 
-  /// Ends the match session without necessarily declaring a winner yet
-  /// (e.g. admin closes the room after the match wraps up in-game).
   Future<void> endMatch(String matchId) {
     return _matches.doc(matchId).update({'status': MatchStatus.completed.name});
   }
 
-  /// Declares a winner. Also ensures status is completed, in case this is
-  /// called directly from a live match without a separate "end" step.
-  Future<void> declareWinner({
-    required String matchId,
-    required String winnerId,
-    required String winnerName,
-  }) {
+  Future<void> declareWinner({required String matchId, required String winnerId, required String winnerName}) {
     return _matches.doc(matchId).update({
       'winnerId': winnerId,
       'winnerName': winnerName,

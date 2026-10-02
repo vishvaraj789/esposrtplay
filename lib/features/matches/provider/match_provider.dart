@@ -40,6 +40,7 @@ class CreateMatchController extends Notifier<CreateMatchState> {
   Future<void> submit({
     required String tournamentId,
     required int round,
+    int matchIndex = 0,
     required String teamAId,
     required String teamAName,
     required String teamBId,
@@ -52,6 +53,7 @@ class CreateMatchController extends Notifier<CreateMatchState> {
       final id = await ref.read(matchRepositoryProvider).createMatch(
         tournamentId: tournamentId,
         round: round,
+        matchIndex: matchIndex,
         teamAId: teamAId,
         teamAName: teamAName,
         teamBId: teamBId,

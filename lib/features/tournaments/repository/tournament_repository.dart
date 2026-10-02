@@ -88,14 +88,6 @@ class TournamentRepository {
 
   // --- Matches (top-level, filtered by tournamentId) ---
 
-  Stream<List<MatchModel>> watchMatches(String tournamentId) {
-    return _matches
-        .where('tournamentId', isEqualTo: tournamentId)
-        .orderBy('round')
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList());
-  }
-
   Future<void> submitMatchResult({
     required String matchId,
     required int scoreA,

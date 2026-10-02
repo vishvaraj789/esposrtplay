@@ -1,6 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../core/services/user_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../routes/route_names.dart';
 
 /// Collects the extra profile fields not covered by Firebase Auth.
 /// Expects the user to already be signed in (e.g. right after the
@@ -60,16 +64,16 @@ class _UserFormState extends State<UserForm> {
         freeFireUid: _uidController.text.trim(),
         nickname: _nicknameController.text.trim(),
         inGameRole: _selectedInGameRole!,
+        role: 'player'
       );
 
       if (!mounted) return;
-
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      context.go(Routes.home);
     } on StateError {
       // Profile already exists for this account — don't treat this as a
       // failure, just move the user forward instead of overwriting data.
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      context.go(Routes.home);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,11 +107,11 @@ class _UserFormState extends State<UserForm> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: const BorderSide(color: AppColors.danger),
       ),
     );
   }
@@ -123,7 +127,8 @@ class _UserFormState extends State<UserForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Branded header — matches Login/Register
+              // Branded header — now on AppColors palette (purple -> cyan),
+              // matching the rebuilt Login/Register screens.
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
@@ -131,7 +136,7 @@ class _UserFormState extends State<UserForm> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+                    colors: [AppColors.primary, AppColors.secondary],
                   ),
                 ),
                 child: Column(
@@ -194,11 +199,28 @@ class _UserFormState extends State<UserForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Your details",
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                "Your details",
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                "Step 2 of 2",
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
 
@@ -290,7 +312,7 @@ class _UserFormState extends State<UserForm> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _submitForm,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF3D5A),
+                              backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -303,16 +325,19 @@ class _UserFormState extends State<UserForm> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                                : const Text(
-                              'Save & Continue',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
+                                : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Save & Continue',
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                ),
+                                SizedBox(width: 6),
+                                Icon(Icons.arrow_forward, size: 18),
+                              ],
                             ),
                           ),
                         ),

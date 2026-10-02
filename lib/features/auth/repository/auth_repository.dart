@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Wraps all Firebase Auth + Google Sign-In calls behind a single,
@@ -39,16 +40,29 @@ class AuthRepository {
     await _googleSignIn.initialize();
     _googleInitialized = true;
   }
-
-  Future<UserCredential> signInWithGoogle() async {
+  /// Returns null if the user dismissed the Google account picker.
+  Future<UserCredential?> signInWithGoogle() async {
+    debugPrint('[google] starting sign-in');
     await _ensureGoogleInitialized();
-    await _googleSignIn.signOut(); // force account picker
+    debugPrint('[google] initialized');
+    await _googleSignIn.signOut();
+    debugPrint('[google] signed out cached account');
 
-    final googleUser = await _googleSignIn.authenticate();
+    final GoogleSignInAccount googleUser;
+    try {
+      googleUser = await _googleSignIn.authenticate();
+    } on GoogleSignInException catch (e) {
+      debugPrint('[google] authenticate failed: ${e.code} ${e.description}');
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      rethrow;
+    }
+    debugPrint('[google] picker returned: ${googleUser.email}');
+
     final googleAuth = googleUser.authentication;
-
     final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
-    return _auth.signInWithCredential(credential);
+    final result = await _auth.signInWithCredential(credential);
+    debugPrint('[google] firebase sign-in complete');
+    return result;
   }
 
   // --- Phone / OTP ---

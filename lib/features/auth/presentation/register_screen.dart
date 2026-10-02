@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/light_theme.dart';
+import '../../../core/utils/auth_error_mapper.dart';
 import '../../../routes/route_names.dart';
 import '../provider/auth_provider.dart';
 import '../widgets/auth_textfield.dart';
@@ -22,6 +23,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _agreeToTerms = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -58,6 +60,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _registerWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
     } catch (e) {
@@ -65,9 +68,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google sign-up failed: $e'), backgroundColor: AppColors.danger),
       );
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -259,7 +263,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 class _GoogleButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
-
   const _GoogleButton({required this.isLoading, required this.onPressed});
 
   @override
@@ -278,7 +281,7 @@ class _GoogleButton extends StatelessWidget {
             : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.g_mobiledata, size: 24, color: Colors.black),
+            _GoogleLogo(size: 20),
             SizedBox(width: 10),
             Text("Continue with Google", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
           ],
@@ -286,4 +289,28 @@ class _GoogleButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GoogleLogo extends StatelessWidget {
+  final double size;
+  const _GoogleLogo({required this.size});
+  @override
+  Widget build(BuildContext context) => SizedBox(width: size, height: size, child: CustomPaint(painter: _GoogleLogoPainter()));
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+    final strokeWidth = size.width * 0.22;
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = strokeWidth..strokeCap = StrokeCap.butt;
+    final rect = Rect.fromCircle(radius: radius - strokeWidth / 2, center: center);
+    paint.color = const Color(0xFF4285F4); canvas.drawArc(rect, -0.45, 1.55, false, paint);
+    paint.color = const Color(0xFF34A853); canvas.drawArc(rect, 1.15, 1.55, false, paint);
+    paint.color = const Color(0xFFFBBC05); canvas.drawArc(rect, 2.75, 1.1, false, paint);
+    paint.color = const Color(0xFFEA4335); canvas.drawArc(rect, 3.9, 1.9, false, paint);
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

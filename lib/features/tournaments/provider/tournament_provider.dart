@@ -24,9 +24,6 @@ final userTeamsProvider = StreamProvider.family<List<Team>, String>((ref, uid) {
   return ref.watch(tournamentRepositoryProvider).watchTeamsForUser(uid);
 });
 
-final matchesProvider = StreamProvider.family<List<MatchModel>, String>((ref, tournamentId) {
-  return ref.watch(tournamentRepositoryProvider).watchMatches(tournamentId);
-});
 
 final leaderboardProvider = StreamProvider.family<List<LeaderboardEntry>, String>((ref, tournamentId) {
   return ref.watch(tournamentRepositoryProvider).watchLeaderboard(tournamentId);

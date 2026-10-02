@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/light_theme.dart';
+import '../../../core/utils/auth_error_mapper.dart';
 import '../../../routes/route_names.dart';
 import '../provider/auth_provider.dart';
 import '../widgets/auth_textfield.dart';
@@ -11,6 +12,7 @@ import '../widgets/auth_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -21,6 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -46,20 +49,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     }
     // Success: no manual navigation — GoRouter's redirect sends the user
+
     // to Routes.home or Routes.completeProfile automatically.
   }
 
   Future<void> _loginWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: $e'), backgroundColor: AppColors.danger),
+        SnackBar(content: Text(friendlyAuthError(e)), backgroundColor: AppColors.danger),
       );
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -255,7 +261,7 @@ class _GoogleButton extends StatelessWidget {
             : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.g_mobiledata, size: 24, color: Colors.black),
+            _GoogleLogo(size: 20),
             SizedBox(width: 10),
             Text("Continue with Google", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
           ],
@@ -263,4 +269,49 @@ class _GoogleButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Google's "G" logo, drawn locally with CustomPaint instead of fetched
+/// from the network. Avoids flicker, failed loads on slow connections, or
+/// a fallback icon flashing on a sign-in button specifically.
+class _GoogleLogo extends StatelessWidget {
+  final double size;
+
+  const _GoogleLogo({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: size, height: size, child: CustomPaint(painter: _GoogleLogoPainter()));
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+    final strokeWidth = size.width * 0.22;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    final rect = Rect.fromCircle(radius: radius - strokeWidth / 2, center: center);
+
+    paint.color = const Color(0xFF4285F4); // blue
+    canvas.drawArc(rect, -0.45, 1.55, false, paint);
+
+    paint.color = const Color(0xFF34A853); // green
+    canvas.drawArc(rect, 1.15, 1.55, false, paint);
+
+    paint.color = const Color(0xFFFBBC05); // yellow
+    canvas.drawArc(rect, 2.75, 1.1, false, paint);
+
+    paint.color = const Color(0xFFEA4335); // red
+    canvas.drawArc(rect, 3.9, 1.9, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

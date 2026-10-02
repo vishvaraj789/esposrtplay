@@ -9,6 +9,7 @@ class MatchModel {
   final String id;
   final String tournamentId;
   final int round;
+  final int matchIndex; // NEW: position within the round, for bracket ordering
   final String teamAId;
   final String teamAName;
   final String teamBId;
@@ -26,6 +27,7 @@ class MatchModel {
     required this.id,
     required this.tournamentId,
     required this.round,
+    this.matchIndex = 0,
     required this.teamAId,
     required this.teamAName,
     required this.teamBId,
@@ -52,6 +54,7 @@ class MatchModel {
       id: id,
       tournamentId: data['tournamentId'] ?? '',
       round: data['round'] ?? 1,
+      matchIndex: data['matchIndex'] ?? 0,
       teamAId: data['teamAId'] ?? '',
       teamAName: data['teamAName'] ?? 'TBD',
       teamBId: data['teamBId'] ?? '',
@@ -71,6 +74,7 @@ class MatchModel {
     return {
       'tournamentId': tournamentId,
       'round': round,
+      'matchIndex': matchIndex,
       'teamAId': teamAId,
       'teamAName': teamAName,
       'teamBId': teamBId,

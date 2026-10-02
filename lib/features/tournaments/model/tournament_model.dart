@@ -135,56 +135,6 @@ class Team {
   }
 }
 
-/// Top-level matches/{matchId} doc, linked via tournamentId + teamAId/teamBId.
-class MatchModel {
-  final String id;
-  final String tournamentId;
-  final int round;
-  final int matchIndex;
-  final String? teamAId;
-  final String? teamBId;
-  final String teamAName;
-  final String teamBName;
-  final int? scoreA;
-  final int? scoreB;
-  final String? winnerTeamId;
-  final DateTime? scheduledTime;
-
-  const MatchModel({
-    required this.id,
-    required this.tournamentId,
-    required this.round,
-    required this.matchIndex,
-    this.teamAId,
-    this.teamBId,
-    this.teamAName = 'TBD',
-    this.teamBName = 'TBD',
-    this.scoreA,
-    this.scoreB,
-    this.winnerTeamId,
-    this.scheduledTime,
-  });
-
-  bool get isComplete => winnerTeamId != null;
-
-  factory MatchModel.fromFirestore(String id, Map<String, dynamic> data) {
-    return MatchModel(
-      id: id,
-      tournamentId: data['tournamentId'] ?? '',
-      round: data['round'] ?? 1,
-      matchIndex: data['matchIndex'] ?? 0,
-      teamAId: data['teamAId'],
-      teamBId: data['teamBId'],
-      teamAName: data['teamAName'] ?? 'TBD',
-      teamBName: data['teamBName'] ?? 'TBD',
-      scoreA: data['scoreA'],
-      scoreB: data['scoreB'],
-      winnerTeamId: data['winnerTeamId'],
-      scheduledTime: (data['scheduledTime'] as Timestamp?)?.toDate(),
-    );
-  }
-}
-
 /// One row of leaderboard/{tournamentId}'s `entries` array field.
 class LeaderboardEntry {
   final String teamId;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../model/tournament_model.dart';
+import '../../matches/models/match_model.dart';
 
 const _kCard = Color(0xFF171821);
 const _kHairline = Color(0xFF2A2C38);
@@ -75,16 +75,16 @@ class _MatchCard extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: Column(
           children: [
-            _row(match.teamAName, match.scoreA, match.winnerTeamId == match.teamAId),
+            _row(match.teamAName, match.winnerId == match.teamAId),
             const Divider(color: _kHairline, height: 12),
-            _row(match.teamBName, match.scoreB, match.winnerTeamId == match.teamBId),
+            _row(match.teamBName, match.winnerId == match.teamBId),
           ],
         ),
       ),
     );
   }
 
-  Widget _row(String name, int? score, bool isWinner) {
+  Widget _row(String name, bool isWinner) {
     return Row(
       children: [
         Expanded(
@@ -98,7 +98,7 @@ class _MatchCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        Text(score?.toString() ?? '-', style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
+        if (isWinner) const Icon(Icons.emoji_events, color: _kGreen, size: 14),
       ],
     );
   }

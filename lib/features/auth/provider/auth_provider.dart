@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/auth_error_mapper.dart';
 import '../repository/auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -37,10 +38,10 @@ class AuthController extends Notifier<AuthState> {
       state = const AuthState(isLoading: false);
       return true;
     } on FirebaseAuthException catch (e) {
-      state = AuthState(isLoading: false, error: e.message ?? 'Login failed');
+      state = AuthState(isLoading: false, error: friendlyAuthError(e));
       return false;
     } catch (e) {
-      state = AuthState(isLoading: false, error: e.toString());
+      state = AuthState(isLoading: false, error: friendlyAuthError(e));
       return false;
     }
   }
@@ -52,10 +53,10 @@ class AuthController extends Notifier<AuthState> {
       state = const AuthState(isLoading: false);
       return true;
     } on FirebaseAuthException catch (e) {
-      state = AuthState(isLoading: false, error: e.message ?? 'Registration failed');
+      state = AuthState(isLoading: false, error: friendlyAuthError(e));
       return false;
     } catch (e) {
-      state = AuthState(isLoading: false, error: e.toString());
+      state = AuthState(isLoading: false, error: friendlyAuthError(e));
       return false;
     }
   }
@@ -67,7 +68,7 @@ class AuthController extends Notifier<AuthState> {
       state = const AuthState(isLoading: false);
       return true;
     } on FirebaseAuthException catch (e) {
-      state = AuthState(isLoading: false, error: e.message ?? 'Failed to send reset email');
+      state = AuthState(isLoading: false, error: friendlyAuthError(e));
       return false;
     }
   }
