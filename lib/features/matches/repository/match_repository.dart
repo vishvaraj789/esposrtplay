@@ -55,6 +55,16 @@ class MatchRepository {
         .map((snap) => snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList());
   }
 
+  /// Admin view of every match, most recently scheduled first. Sorting here
+  /// keeps this query index-free while still producing a predictable list.
+  Stream<List<MatchModel>> watchAllMatches() {
+    return _matches.snapshots().map((snap) {
+      final matches = snap.docs.map((d) => MatchModel.fromFirestore(d.id, d.data())).toList();
+      matches.sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
+      return matches;
+    });
+  }
+
   /// Matches for a tournament, ordered for correct bracket display:
   /// by round first, then by matchIndex within that round. Firestore
   /// can't orderBy two fields without a composite index unless we sort

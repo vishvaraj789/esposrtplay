@@ -15,6 +15,10 @@ final liveMatchesProvider = StreamProvider<List<MatchModel>>((ref) {
   return ref.watch(matchRepositoryProvider).watchLiveMatches();
 });
 
+final allMatchesProvider = StreamProvider<List<MatchModel>>((ref) {
+  return ref.watch(matchRepositoryProvider).watchAllMatches();
+});
+
 final tournamentMatchesProvider = StreamProvider.family<List<MatchModel>, String>((ref, tournamentId) {
   return ref.watch(matchRepositoryProvider).watchMatchesForTournament(tournamentId);
 });

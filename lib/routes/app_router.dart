@@ -34,6 +34,18 @@ import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/team_chat_screen.dart';
 
 import '../features/admin/presentation/admin_dashboard_screen.dart';
+import '../features/admin/presentation/admin_tournaments_screen.dart';
+import '../features/admin/presentation/admin_tournament_form_screen.dart';
+import '../features/admin/presentation/admin_teams_screen.dart';
+import '../features/admin/presentation/admin_matches_screen.dart';
+import '../features/admin/presentation/admin_match_create_screen.dart';
+import '../features/admin/presentation/admin_match_manage_screen.dart';
+import '../features/admin/presentation/admin_announcements_screen.dart';
+
+import '../features/matches/presentation/matches_screen.dart';
+import '../features/matches/presentation/match_details_screen.dart';
+import '../features/matches/presentation/match_room_screen.dart';
+import '../features/matches/presentation/match_result_screen.dart';
 
 import '../features/tournaments/presentation/tournament_details_screen.dart';
 import '../features/teams/presentation/team_create_screen.dart';
@@ -113,18 +125,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ---- Matches ----
-      GoRoute(path: Routes.matches, builder: (_, __) => const RoutePlaceholderScreen(title: 'Matches')),
+      GoRoute(path: Routes.matches, builder: (_, __) => const MatchesScreen()),
       GoRoute(
         path: Routes.matchDetails,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Match Details', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => MatchDetailsScreen(matchId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.matchRoom,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Match Room', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => MatchRoomScreen(matchId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.matchResult,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Submit Result', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => MatchResultScreen(matchId: state.pathParameters['id']!),
       ),
 
       // ---- Teams (static 'create' before ':id') ----
@@ -140,19 +152,19 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ---- Admin (guarded by the /admin prefix check in _redirect) ----
       GoRoute(path: Routes.adminDashboard, builder: (_, __) => const AdminDashboardScreen()),
-      GoRoute(path: Routes.adminTournaments, builder: (_, __) => const RoutePlaceholderScreen(title: 'Manage Tournaments')),
+      GoRoute(path: Routes.adminTournaments, builder: (_, __) => const AdminTournamentsScreen()),
       GoRoute(
         path: Routes.adminTournamentEdit,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Edit Tournament', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => AdminTournamentFormScreen(tournamentId: state.pathParameters['id']!),
       ),
-      GoRoute(path: Routes.adminTeams, builder: (_, __) => const RoutePlaceholderScreen(title: 'Team Approvals')),
-      GoRoute(path: Routes.adminMatches, builder: (_, __) => const RoutePlaceholderScreen(title: 'Manage Matches')),
-      GoRoute(path: Routes.adminMatchCreate, builder: (_, __) => const RoutePlaceholderScreen(title: 'Create Match')),
+      GoRoute(path: Routes.adminTeams, builder: (_, __) => const AdminTeamsScreen()),
+      GoRoute(path: Routes.adminMatches, builder: (_, __) => const AdminMatchesScreen()),
+      GoRoute(path: Routes.adminMatchCreate, builder: (_, __) => const AdminMatchCreateScreen()),
       GoRoute(
         path: Routes.adminMatchManage,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Manage Match', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => AdminMatchManageScreen(matchId: state.pathParameters['id']!),
       ),
-      GoRoute(path: Routes.adminAnnouncements, builder: (_, __) => const RoutePlaceholderScreen(title: 'Announcements')),
+      GoRoute(path: Routes.adminAnnouncements, builder: (_, __) => const AdminAnnouncementsScreen()),
     ],
   );
 });

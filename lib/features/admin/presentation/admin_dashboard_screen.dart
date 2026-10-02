@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../routes/route_names.dart';
+import 'package:go_router/go_router.dart';
 import '../provider/admin_provider.dart';
 import '../widgets/dashboard_stat_card.dart';
 import '../widgets/admin_action_button.dart';
@@ -92,25 +94,25 @@ class AdminDashboardScreen extends ConsumerWidget {
                   label: 'Create Tournament',
                   icon: Icons.add_circle_outline,
                   color: AppColors.primary,
-                  onTap: () => _notYetBuilt(context, 'Create Tournament'),
+                  onTap: () => context.push(Routes.adminTournamentEditPath('new')),
                 ),
                 AdminActionButton(
                   label: 'Manage Teams',
                   icon: Icons.groups_outlined,
                   color: const Color(0xFF3DDC84),
-                  onTap: () => _notYetBuilt(context, 'Manage Teams'),
+                  onTap: () => context.push(Routes.adminTeams),
                 ),
                 AdminActionButton(
                   label: 'Manage Matches',
                   icon: Icons.sports_esports_outlined,
                   color: const Color(0xFFFFC24B),
-                  onTap: () => _notYetBuilt(context, 'Manage Matches'),
+                  onTap: () => context.push(Routes.adminMatches),
                 ),
                 AdminActionButton(
                   label: 'Announcements',
                   icon: Icons.campaign_outlined,
                   color: const Color(0xFF3DA9FC),
-                  onTap: () => _notYetBuilt(context, 'Announcements'),
+                  onTap: () => context.push(Routes.adminAnnouncements),
                 ),
               ],
             ),
@@ -136,12 +138,6 @@ class AdminDashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _notYetBuilt(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature screen isn\'t built yet')),
     );
   }
 }
