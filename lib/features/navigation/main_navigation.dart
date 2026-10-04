@@ -1,41 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import '../home/presentation/home_screen.dart';
-import '../teams/presentation/teams_screen.dart';
-import '../tournaments/presentation/tournaments_screen.dart';
-import '../profile/presentation/profile_screen.dart';
 import '../../core/theme/app_colors.dart';
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+/// Bottom-nav scaffold. The tab screens themselves are supplied by the
+/// StatefulShellRoute branches in app_router.dart; this widget only draws the
+/// bar and forwards taps to [StatefulNavigationShell.goBranch].
+class MainNavigation extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
 
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    TeamsScreen(),
-    TournamentsScreen(),
-    ProfileScreen(),
-  ];
+  const MainNavigation({super.key, required this.navigationShell});
 
   void _onTap(int index) {
-    setState(() => _currentIndex = index);
+    navigationShell.goBranch(
+      index,
+      // Tapping the active tab pops that tab back to its root.
+      initialLocation: index == navigationShell.currentIndex,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: navigationShell.currentIndex,
         onTap: _onTap,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,

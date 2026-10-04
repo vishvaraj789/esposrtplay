@@ -103,7 +103,15 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    // Firebase first: this is what actually ends the session and triggers
+    // the router redirect to /login.
     await _auth.signOut();
+    // Google cleanup is best-effort and must never block logout.
+    try {
+      await _ensureGoogleInitialized();
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('[google] signOut failed (ignored): $e');
+    }
   }
 }

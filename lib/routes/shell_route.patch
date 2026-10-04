@@ -1,0 +1,152 @@
+--- a/lib/routes/route_names.dart
++++ b/lib/routes/route_names.dart
+@@ -6,7 +6,11 @@
+   static const otp = '/otp';
+   static const completeProfile = '/complete-profile'; // NEW: first-time UserForm step
+
++  // ---- Bottom-nav tabs (branches of the StatefulShellRoute in app_router.dart) ----
+   static const home = '/home';
++  static const teams = '/teams';
++  static const tournaments = '/tournaments';
++  static const profile = '/profile';
+
+   static const leaderboard = '/leaderboard';
+
+--- a/lib/routes/app_router.dart
++++ b/lib/routes/app_router.dart
+@@ -20,6 +20,10 @@
+ import '../features/profile/widgets/user_form.dart';
+
+ import '../features/navigation/main_navigation.dart';
++import '../features/home/presentation/home_screen.dart';
++import '../features/teams/presentation/teams_screen.dart';
++import '../features/tournaments/presentation/tournaments_screen.dart';
++import '../features/profile/presentation/profile_screen.dart';
+ import '../features/splash/presentation/splash_screen.dart';
+
+ import '../features/leaderboard/presentation/leaderboard_screen.dart';
+@@ -82,7 +86,26 @@
+       ),
+       GoRoute(path: Routes.completeProfile, builder: (_, __) => const UserForm()),
+
+-      GoRoute(path: Routes.home, builder: (_, __) => const MainNavigation()),
++      // ---- Bottom-nav shell: each tab is a real route with its own preserved stack ----
++      // Detail/create routes below stay *outside* the shell on purpose, so they
++      // open full-screen over the tab bar (same look as before).
++      StatefulShellRoute.indexedStack(
++        builder: (_, __, navigationShell) => MainNavigation(navigationShell: navigationShell),
++        branches: [
++          StatefulShellBranch(routes: [
++            GoRoute(path: Routes.home, builder: (_, __) => const HomeScreen()),
++          ]),
++          StatefulShellBranch(routes: [
++            GoRoute(path: Routes.teams, builder: (_, __) => const TeamsScreen()),
++          ]),
++          StatefulShellBranch(routes: [
++            GoRoute(path: Routes.tournaments, builder: (_, __) => const TournamentsScreen()),
++          ]),
++          StatefulShellBranch(routes: [
++            GoRoute(path: Routes.profile, builder: (_, __) => const ProfileScreen()),
++          ]),
++        ],
++      ),
+
+       GoRoute(path: Routes.leaderboard, builder: (_, __) => const LeaderboardScreen()),
+
+--- a/lib/features/navigation/main_navigation.dart
++++ b/lib/features/navigation/main_navigation.dart
+@@ -1,41 +1,30 @@
+ import 'package:flutter/material.dart';
++import 'package:go_router/go_router.dart';
+
+-import '../home/presentation/home_screen.dart';
+-import '../teams/presentation/teams_screen.dart';
+-import '../tournaments/presentation/tournaments_screen.dart';
+-import '../profile/presentation/profile_screen.dart';
+ import '../../core/theme/app_colors.dart';
+
+-class MainNavigation extends StatefulWidget {
+-  const MainNavigation({super.key});
++/// Bottom-nav scaffold. The tab screens themselves are supplied by the
++/// StatefulShellRoute branches in app_router.dart; this widget only draws the
++/// bar and forwards taps to [StatefulNavigationShell.goBranch].
++class MainNavigation extends StatelessWidget {
++  final StatefulNavigationShell navigationShell;
+
+-  @override
+-  State<MainNavigation> createState() => _MainNavigationState();
+-}
+-
+-class _MainNavigationState extends State<MainNavigation> {
+-  int _currentIndex = 0;
+-
+-  final List<Widget> _screens = const [
+-    HomeScreen(),
+-    TeamsScreen(),
+-    TournamentsScreen(),
+-    ProfileScreen(),
+-  ];
++  const MainNavigation({super.key, required this.navigationShell});
+
+   void _onTap(int index) {
+-    setState(() => _currentIndex = index);
++    navigationShell.goBranch(
++      index,
++      // Tapping the active tab pops that tab back to its root.
++      initialLocation: index == navigationShell.currentIndex,
++    );
+   }
+
+   @override
+   Widget build(BuildContext context) {
+     return Scaffold(
+-      body: IndexedStack(
+-        index: _currentIndex,
+-        children: _screens,
+-      ),
++      body: navigationShell,
+       bottomNavigationBar: BottomNavigationBar(
+-        currentIndex: _currentIndex,
++        currentIndex: navigationShell.currentIndex,
+         onTap: _onTap,
+         type: BottomNavigationBarType.fixed,
+         selectedItemColor: AppColors.primary,
+@@ -65,4 +54,4 @@
+       ),
+     );
+   }
+-}
+\ No newline at end of file
++}
+--- a/lib/features/home/presentation/home_screen.dart
++++ b/lib/features/home/presentation/home_screen.dart
+@@ -73,7 +73,7 @@
+
+               _SectionTitle(
+                 title: 'Live & Upcoming',
+-                onSeeAll: () => context.push(Routes.wallet /* TODO: Routes.tournaments once wired */),
++                onSeeAll: () => context.go(Routes.tournaments),
+               ),
+               const SizedBox(height: 12),
+               tournamentsAsync.when(
+@@ -91,10 +91,7 @@
+                       separatorBuilder: (_, __) => const SizedBox(width: 12),
+                       itemBuilder: (context, i) => FeaturedTournamentCard(
+                         tournament: tournaments[i],
+-                        onTap: () {
+-                          // TODO: push tournament_details_screen.dart once
+-                          // it exists and is wired into app_router.dart.
+-                        },
++                        onTap: () => context.push(Routes.tournamentDetailsPath(tournaments[i].id)),
+                       ),
+                     ),
+                   );
+@@ -130,7 +127,7 @@
+   void _handleQuickAction(BuildContext context, String label) {
+     switch (label) {
+       case 'Tournaments':
+-      // TODO: context.push(Routes.tournaments) once that route exists.
++        context.go(Routes.tournaments); // tab switch -> go(), not push()
+         break;
+       case 'Wallet':
+         context.push(Routes.wallet);

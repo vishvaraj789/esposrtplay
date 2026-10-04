@@ -1,0 +1,3175 @@
+--- a/lib/./core/theme/app_colors.dart
++++ b/lib/./core/theme/app_colors.dart
+@@ -1,6 +1,9 @@
+ import 'package:flutter/material.dart';
+
++/// Single source of truth for colors. Screens should reference these tokens
++/// instead of declaring private `_kXxx` consts or inline `Color(0x...)` values.
+ class AppColors {
++  // ---- Theme palette (used by dark_theme.dart / light_theme.dart) ----
+   static const primary = Color(0xff6C3CF0);
+   static const secondary = Color(0xff00E5FF);
+
+@@ -11,4 +14,32 @@
+   static const danger = Color(0xffEF4444);
+
+   static const white = Colors.white;
+-}
+\ No newline at end of file
++
++  // ---- Dark UI surfaces used by most feature screens ----
++  static const backgroundDeep = Color(0xFF0B0C12);
++  static const card = Color(0xFF171821);
++  static const chip = Color(0xFF1D1E29);
++  static const hairline = Color(0xFF2A2C38);
++  static const textSecondary = Color(0xFF9CA0AF);
++
++  // ---- Accents ----
++  static const orange = Color(0xFFFF6A3D);
++  static const pink = Color(0xFFFF3D5A);
++  static const gold = Color(0xFFFFC24B);
++  static const green = Color(0xFF3DDC84);
++  static const blue = Color(0xFF3DA9FC);
++  static const purple = Color(0xFF8B5CF6);
++  static const liveRed = Color(0xFFE23744);
++  static const silver = Color(0xFFC0C6D4);
++  static const bronze = Color(0xFFCD7F32);
++
++  static const brandGradient = LinearGradient(
++    colors: [orange, pink],
++    begin: Alignment.centerLeft,
++    end: Alignment.centerRight,
++  );
++
++  // ---- Light form fields (auth / profile screens) ----
++  static const fieldLight = Color(0xFFF7F8FC);
++  static const fieldLightDisabled = Color(0xFFEDEEF2);
++}
+--- a/lib/./features/admin/presentation/admin_announcements_screen.dart
++++ b/lib/./features/admin/presentation/admin_announcements_screen.dart
+@@ -25,7 +25,7 @@
+     final announcements = ref.watch(announcementsProvider);
+     final busy = ref.watch(createAnnouncementControllerProvider).isLoading;
+     return Scaffold(backgroundColor: AppColors.backgroundDark, appBar: AppBar(backgroundColor: AppColors.backgroundDark, title: const Text('Announcements')), body: ListView(padding: const EdgeInsets.all(16), children: [
+-      Form(key: _formKey, child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF2A2C38))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
++      Form(key: _formKey, child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.hairline)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+         const Text('Post announcement', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)), const SizedBox(height: 14),
+         AppTextField(controller: _title, label: 'Title', validator: _required), const SizedBox(height: 12),
+         AppTextField(controller: _message, label: 'Message', maxLines: 4, validator: _required), const SizedBox(height: 16),
+--- a/lib/./features/admin/presentation/admin_dashboard_screen.dart
++++ b/lib/./features/admin/presentation/admin_dashboard_screen.dart
+@@ -61,19 +61,19 @@
+                     label: 'Teams',
+                     value: stats.totalTeams.toString(),
+                     icon: Icons.groups,
+-                    color: const Color(0xFF3DDC84),
++                    color: AppColors.green,
+                   ),
+                   DashboardStatCard(
+                     label: 'Matches Today',
+                     value: stats.matchesToday.toString(),
+                     icon: Icons.sports_esports,
+-                    color: const Color(0xFFFFC24B),
++                    color: AppColors.gold,
+                   ),
+                   DashboardStatCard(
+                     label: 'Prize Pool',
+                     value: '₹${stats.totalPrizePool.toStringAsFixed(0)}',
+                     icon: Icons.account_balance_wallet,
+-                    color: const Color(0xFFFF3D5A),
++                    color: AppColors.pink,
+                   ),
+                 ],
+               ),
+@@ -99,19 +99,19 @@
+                 AdminActionButton(
+                   label: 'Manage Teams',
+                   icon: Icons.groups_outlined,
+-                  color: const Color(0xFF3DDC84),
++                  color: AppColors.green,
+                   onTap: () => context.push(Routes.adminTeams),
+                 ),
+                 AdminActionButton(
+                   label: 'Manage Matches',
+                   icon: Icons.sports_esports_outlined,
+-                  color: const Color(0xFFFFC24B),
++                  color: AppColors.gold,
+                   onTap: () => context.push(Routes.adminMatches),
+                 ),
+                 AdminActionButton(
+                   label: 'Announcements',
+                   icon: Icons.campaign_outlined,
+-                  color: const Color(0xFF3DA9FC),
++                  color: AppColors.blue,
+                   onTap: () => context.push(Routes.adminAnnouncements),
+                 ),
+               ],
+--- a/lib/./features/admin/presentation/admin_teams_screen.dart
++++ b/lib/./features/admin/presentation/admin_teams_screen.dart
+@@ -31,4 +31,4 @@
+   }
+ }
+ class _NoPending extends StatelessWidget { const _NoPending(); @override Widget build(BuildContext context) => const Padding(padding: EdgeInsets.symmetric(vertical: 28), child: Center(child: Text('No teams are awaiting approval', style: TextStyle(color: Colors.white54)))); }
+-class _ReviewTile extends StatelessWidget { final TeamApprovalRequest team; const _ReviewTile(this.team); @override Widget build(BuildContext context) { final approved = team.status == TeamApprovalStatus.approved; return Container(margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(12)), child: ListTile(leading: Icon(approved ? Icons.check_circle : Icons.cancel, color: approved ? Colors.greenAccent : Colors.redAccent), title: Text(team.name, style: const TextStyle(color: Colors.white)), subtitle: Text(team.tag, style: const TextStyle(color: Colors.white54)), trailing: Text(approved ? 'Approved' : 'Rejected', style: TextStyle(color: approved ? Colors.greenAccent : Colors.redAccent, fontSize: 12)))); }}
++class _ReviewTile extends StatelessWidget { final TeamApprovalRequest team; const _ReviewTile(this.team); @override Widget build(BuildContext context) { final approved = team.status == TeamApprovalStatus.approved; return Container(margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)), child: ListTile(leading: Icon(approved ? Icons.check_circle : Icons.cancel, color: approved ? Colors.greenAccent : Colors.redAccent), title: Text(team.name, style: const TextStyle(color: Colors.white)), subtitle: Text(team.tag, style: const TextStyle(color: Colors.white54)), trailing: Text(approved ? 'Approved' : 'Rejected', style: TextStyle(color: approved ? Colors.greenAccent : Colors.redAccent, fontSize: 12)))); }}
+--- a/lib/./features/admin/widgets/admin_action_button.dart
++++ b/lib/./features/admin/widgets/admin_action_button.dart
+@@ -1,7 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+
+ class AdminActionButton extends StatelessWidget {
+   final String label;
+@@ -23,9 +22,9 @@
+       onTap: onTap,
+       child: Container(
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(14),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         padding: const EdgeInsets.symmetric(vertical: 16),
+         child: Column(
+--- a/lib/./features/admin/widgets/announcement_card.dart
++++ b/lib/./features/admin/widgets/announcement_card.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../models/announcement_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kBlue = Color(0xFF3DA9FC);
+
+ class AnnouncementCard extends StatelessWidget {
+   final AnnouncementModel announcement;
+@@ -17,12 +14,12 @@
+   Widget build(BuildContext context) {
+     return Container(
+       margin: const EdgeInsets.only(bottom: 10),
+-      decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: _kHairline)),
++      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.hairline)),
+       padding: const EdgeInsets.all(14),
+       child: Row(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+-          const Icon(Icons.campaign, color: _kBlue, size: 20),
++          const Icon(Icons.campaign, color: AppColors.blue, size: 20),
+           const SizedBox(width: 10),
+           Expanded(
+             child: Column(
+@@ -30,11 +27,11 @@
+               children: [
+                 Text(announcement.title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                 const SizedBox(height: 4),
+-                Text(announcement.message, style: const TextStyle(color: _kTextSecondary, fontSize: 12.5)),
++                Text(announcement.message, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+                 const SizedBox(height: 6),
+                 Text(
+                   '${announcement.createdAt.day}/${announcement.createdAt.month}/${announcement.createdAt.year}',
+-                  style: const TextStyle(color: _kTextSecondary, fontSize: 10.5),
++                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5),
+                 ),
+               ],
+             ),
+--- a/lib/./features/admin/widgets/dashboard_stat_card.dart
++++ b/lib/./features/admin/widgets/dashboard_stat_card.dart
+@@ -1,8 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class DashboardStatCard extends StatelessWidget {
+   final String label;
+@@ -22,9 +20,9 @@
+   Widget build(BuildContext context) {
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(14),
+       child: Column(
+@@ -39,7 +37,7 @@
+           const SizedBox(height: 10),
+           Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+           const SizedBox(height: 2),
+-          Text(label, style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+         ],
+       ),
+     );
+--- a/lib/./features/admin/widgets/team_request_card.dart
++++ b/lib/./features/admin/widgets/team_request_card.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../repository/team_admin_repository.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class TeamRequestCard extends StatelessWidget {
+   final TeamApprovalRequest request;
+@@ -23,7 +20,7 @@
+   Widget build(BuildContext context) {
+     return Container(
+       margin: const EdgeInsets.only(bottom: 10),
+-      decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: _kHairline)),
++      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.hairline)),
+       padding: const EdgeInsets.all(14),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+@@ -31,7 +28,7 @@
+           Row(
+             children: [
+               CircleAvatar(
+-                backgroundColor: const Color(0xFF2A2C38),
++                backgroundColor: AppColors.hairline,
+                 backgroundImage: request.logoUrl != null ? NetworkImage(request.logoUrl!) : null,
+                 child: request.logoUrl == null ? const Icon(Icons.shield, color: Colors.white54, size: 18) : null,
+               ),
+@@ -41,7 +38,7 @@
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Text(request.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+-                    Text('Tag: ${request.tag}', style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                    Text('Tag: ${request.tag}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+                   ],
+                 ),
+               ),
+@@ -65,7 +62,7 @@
+                 child: ElevatedButton(
+                   onPressed: onApprove,
+                   style: ElevatedButton.styleFrom(
+-                    backgroundColor: _kGreen,
++                    backgroundColor: AppColors.green,
+                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                   ),
+                   child: const Text('Approve', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+--- a/lib/./features/admin/widgets/tournament_tile.dart
++++ b/lib/./features/admin/widgets/tournament_tile.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../../tournaments/model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGold = Color(0xFFFFC24B);
+
+ class TournamentTile extends StatelessWidget {
+   final Tournament tournament;
+@@ -24,13 +21,13 @@
+   Color get _statusColor {
+     switch (tournament.status) {
+       case TournamentStatus.live:
+-        return const Color(0xFFE23744);
++        return AppColors.liveRed;
+       case TournamentStatus.upcoming:
+-        return const Color(0xFFFF6A3D);
++        return AppColors.orange;
+       case TournamentStatus.completed:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+       case TournamentStatus.cancelled:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+     }
+   }
+
+@@ -38,7 +35,7 @@
+   Widget build(BuildContext context) {
+     return Container(
+       margin: const EdgeInsets.only(bottom: 8),
+-      decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kHairline)),
++      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.hairline)),
+       child: ListTile(
+         onTap: onTap,
+         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+@@ -51,13 +48,13 @@
+         title: Text(tournament.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+         subtitle: Text(
+           '${tournament.currentParticipants}/${tournament.maxParticipants} teams · ₹${tournament.prizePool.toStringAsFixed(0)}',
+-          style: const TextStyle(color: _kTextSecondary, fontSize: 11.5),
++          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+         ),
+         trailing: Row(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             if (onEdit != null)
+-              IconButton(icon: const Icon(Icons.edit, color: _kGold, size: 18), onPressed: onEdit),
++              IconButton(icon: const Icon(Icons.edit, color: AppColors.gold, size: 18), onPressed: onEdit),
+             if (onDelete != null)
+               IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18), onPressed: onDelete),
+           ],
+--- a/lib/./features/auth/presentation/login_screen.dart
++++ b/lib/./features/auth/presentation/login_screen.dart
+@@ -73,7 +73,7 @@
+     return Theme(
+       data: lightTheme,
+       child: Scaffold(
+-        backgroundColor: const Color(0xFFF7F8FC),
++        backgroundColor: AppColors.fieldLight,
+         body: SafeArea(
+           child: SingleChildScrollView(
+             child: Column(
+--- a/lib/./features/auth/presentation/otp_screen.dart
++++ b/lib/./features/auth/presentation/otp_screen.dart
+@@ -5,6 +5,7 @@
+
+ import '../provider/auth_provider.dart';
+ import '../widgets/auth_button.dart';
++import '../../../core/theme/app_colors.dart';
+
+ /// Verifies a 6-digit SMS OTP for [phoneNumber]. Call
+ /// `authRepository.sendOtp(...)` before pushing this screen and pass the
+@@ -154,14 +155,14 @@
+         decoration: InputDecoration(
+           counterText: '',
+           filled: true,
+-          fillColor: const Color(0xFFF7F8FC),
++          fillColor: AppColors.fieldLight,
+           border: OutlineInputBorder(
+             borderRadius: BorderRadius.circular(12),
+             borderSide: BorderSide.none,
+           ),
+           focusedBorder: OutlineInputBorder(
+             borderRadius: BorderRadius.circular(12),
+-            borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
++            borderSide: const BorderSide(color: AppColors.pink, width: 1.5),
+           ),
+         ),
+         onChanged: (value) => _onDigitChanged(index, value),
+--- a/lib/./features/auth/presentation/register_screen.dart
++++ b/lib/./features/auth/presentation/register_screen.dart
+@@ -79,7 +79,7 @@
+     return Theme(
+       data: lightTheme,
+       child: Scaffold(
+-        backgroundColor: const Color(0xFFF7F8FC),
++        backgroundColor: AppColors.fieldLight,
+         body: SafeArea(
+           child: SingleChildScrollView(
+             child: Column(
+--- a/lib/./features/auth/widgets/auth_button.dart
++++ b/lib/./features/auth/widgets/auth_button.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+ /// Primary CTA button used across auth screens (Login, Register, Reset,
+ /// Verify OTP). Matches the pink/red accent used in login_screen.dart.
+@@ -26,9 +27,9 @@
+       child: ElevatedButton(
+         onPressed: disabled ? null : onPressed,
+         style: ElevatedButton.styleFrom(
+-          backgroundColor: const Color(0xFFFF3D5A),
++          backgroundColor: AppColors.pink,
+           foregroundColor: Colors.white,
+-          disabledBackgroundColor: const Color(0xFFFF3D5A).withOpacity(0.5),
++          disabledBackgroundColor: AppColors.pink.withOpacity(0.5),
+           elevation: 0,
+           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+         ),
+--- a/lib/./features/auth/widgets/auth_textfield.dart
++++ b/lib/./features/auth/widgets/auth_textfield.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+ /// Auth-flow styled text field (login/register/forgot-password/OTP).
+ /// Kept separate from core/widgets/AppTextField so auth screens can evolve
+@@ -81,7 +82,7 @@
+             )
+                 : widget.suffixIcon,
+             filled: true,
+-            fillColor: widget.enabled ? const Color(0xFFF7F8FC) : const Color(0xFFEDEEF2),
++            fillColor: widget.enabled ? AppColors.fieldLight : AppColors.fieldLightDisabled,
+             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+             errorMaxLines: 2,
+             border: OutlineInputBorder(
+@@ -94,15 +95,15 @@
+             ),
+             focusedBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1.5),
+             ),
+             errorBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1),
+             ),
+             focusedErrorBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1.5),
+             ),
+             disabledBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+--- a/lib/./features/chat/presentation/chat_screen.dart
++++ b/lib/./features/chat/presentation/chat_screen.dart
+@@ -5,9 +5,8 @@
+ import '../provider/chat_provider.dart';
+ import '../widgets/chat_bubble.dart';
+ import '../widgets/message_input.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ /// 1:1 direct message screen between the signed-in user and [otherUid].
+ class ChatScreen extends ConsumerStatefulWidget {
+@@ -40,8 +39,8 @@
+
+     if (myUid == null) {
+       return const Scaffold(
+-        backgroundColor: _kBg,
+-        body: Center(child: Text('Please log in', style: TextStyle(color: _kTextSecondary))),
++        backgroundColor: AppColors.backgroundDark,
++        body: Center(child: Text('Please log in', style: TextStyle(color: AppColors.textSecondary))),
+       );
+     }
+
+@@ -49,8 +48,8 @@
+     final messagesAsync = ref.watch(directMessagesProvider(chatId));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: Text(widget.otherUserName), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: Text(widget.otherUserName), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: Column(
+         children: [
+           Expanded(
+@@ -60,7 +59,7 @@
+               data: (messages) {
+                 WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                 if (messages.isEmpty) {
+-                  return const Center(child: Text('Say hello 👋', style: TextStyle(color: _kTextSecondary)));
++                  return const Center(child: Text('Say hello 👋', style: TextStyle(color: AppColors.textSecondary)));
+                 }
+                 return ListView.builder(
+                   controller: _scrollController,
+--- a/lib/./features/chat/presentation/team_chat_screen.dart
++++ b/lib/./features/chat/presentation/team_chat_screen.dart
+@@ -5,9 +5,8 @@
+ import '../provider/chat_provider.dart';
+ import '../widgets/chat_bubble.dart';
+ import '../widgets/message_input.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class TeamChatScreen extends ConsumerStatefulWidget {
+   final String teamId;
+@@ -39,16 +38,16 @@
+
+     if (myUid == null) {
+       return const Scaffold(
+-        backgroundColor: _kBg,
+-        body: Center(child: Text('Please log in', style: TextStyle(color: _kTextSecondary))),
++        backgroundColor: AppColors.backgroundDark,
++        body: Center(child: Text('Please log in', style: TextStyle(color: AppColors.textSecondary))),
+       );
+     }
+
+     final messagesAsync = ref.watch(teamMessagesProvider(widget.teamId));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: Text('${widget.teamName} · Team Chat'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: Text('${widget.teamName} · Team Chat'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: Column(
+         children: [
+           Expanded(
+@@ -58,7 +57,7 @@
+               data: (messages) {
+                 WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                 if (messages.isEmpty) {
+-                  return const Center(child: Text('No messages yet — say hi to your team 👋', style: TextStyle(color: _kTextSecondary)));
++                  return const Center(child: Text('No messages yet — say hi to your team 👋', style: TextStyle(color: AppColors.textSecondary)));
+                 }
+                 return ListView.builder(
+                   controller: _scrollController,
+--- a/lib/./features/chat/widgets/chat_bubble.dart
++++ b/lib/./features/chat/widgets/chat_bubble.dart
+@@ -1,11 +1,10 @@
+ import 'package:flutter/material.dart';
+
+ import '../provider/chat_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kMyBubble = Color(0xFFFF3D5A);
+-const _kOtherBubble = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
++const _kMyBubble = AppColors.pink;
++const _kOtherBubble = AppColors.card;
+
+ class ChatBubble extends StatelessWidget {
+   final ChatMessage message;
+@@ -42,7 +41,7 @@
+             bottomLeft: Radius.circular(isMe ? 14 : 2),
+             bottomRight: Radius.circular(isMe ? 2 : 14),
+           ),
+-          border: isMe ? null : Border.all(color: _kHairline),
++          border: isMe ? null : Border.all(color: AppColors.hairline),
+         ),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+@@ -51,13 +50,13 @@
+               Padding(
+                 padding: const EdgeInsets.only(bottom: 3),
+                 child: Text(message.senderName,
+-                    style: const TextStyle(color: Color(0xFF3DA9FC), fontSize: 11, fontWeight: FontWeight.w700)),
++                    style: const TextStyle(color: AppColors.blue, fontSize: 11, fontWeight: FontWeight.w700)),
+               ),
+             Text(message.text, style: const TextStyle(color: Colors.white, fontSize: 14)),
+             const SizedBox(height: 3),
+             Text(
+               _time(message.createdAt),
+-              style: TextStyle(color: isMe ? Colors.white70 : _kTextSecondary, fontSize: 9.5),
++              style: TextStyle(color: isMe ? Colors.white70 : AppColors.textSecondary, fontSize: 9.5),
+             ),
+           ],
+         ),
+--- a/lib/./features/chat/widgets/message_input.dart
++++ b/lib/./features/chat/widgets/message_input.dart
+@@ -1,8 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class MessageInput extends StatefulWidget {
+   final void Function(String text) onSend;
+@@ -45,21 +43,21 @@
+                 maxLines: 4,
+                 decoration: InputDecoration(
+                   hintText: 'Type a message...',
+-                  hintStyle: const TextStyle(color: _kTextSecondary),
++                  hintStyle: const TextStyle(color: AppColors.textSecondary),
+                   filled: true,
+-                  fillColor: _kCard,
++                  fillColor: AppColors.card,
+                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                   border: OutlineInputBorder(
+                     borderRadius: BorderRadius.circular(24),
+-                    borderSide: const BorderSide(color: _kHairline),
++                    borderSide: const BorderSide(color: AppColors.hairline),
+                   ),
+                   enabledBorder: OutlineInputBorder(
+                     borderRadius: BorderRadius.circular(24),
+-                    borderSide: const BorderSide(color: _kHairline),
++                    borderSide: const BorderSide(color: AppColors.hairline),
+                   ),
+                   focusedBorder: OutlineInputBorder(
+                     borderRadius: BorderRadius.circular(24),
+-                    borderSide: const BorderSide(color: Color(0xFFFF3D5A)),
++                    borderSide: const BorderSide(color: AppColors.pink),
+                   ),
+                 ),
+                 onSubmitted: (_) => _submit(),
+@@ -67,7 +65,7 @@
+             ),
+             const SizedBox(width: 8),
+             Container(
+-              decoration: const BoxDecoration(color: Color(0xFFFF3D5A), shape: BoxShape.circle),
++              decoration: const BoxDecoration(color: AppColors.pink, shape: BoxShape.circle),
+               child: IconButton(
+                 icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                 onPressed: _submit,
+--- a/lib/./features/home/presentation/home_screen.dart
++++ b/lib/./features/home/presentation/home_screen.dart
+@@ -158,7 +158,7 @@
+           child: Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+-              const Text('Welcome back', style: TextStyle(color: Color(0xFF9CA0AF), fontSize: 12)),
++              const Text('Welcome back', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+               const SizedBox(height: 2),
+               Text(
+                 nickname?.isNotEmpty == true ? nickname! : 'Player',
+@@ -190,7 +190,7 @@
+           child: Container(
+             width: 40,
+             height: 40,
+-            decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(12)),
++            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+             child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+           ),
+         ),
+@@ -242,7 +242,7 @@
+   Widget build(BuildContext context) {
+     return SizedBox(
+       height: 80,
+-      child: Center(child: Text(message, style: const TextStyle(color: Color(0xFF9CA0AF), fontSize: 13))),
++      child: Center(child: Text(message, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
+     );
+   }
+ }
+\ No newline at end of file
+--- a/lib/./features/home/provider/home_provider.dart
++++ b/lib/./features/home/provider/home_provider.dart
+@@ -3,6 +3,7 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+ import '../../../routes/route_names.dart';
++import '../../../core/theme/app_colors.dart';
+
+ // --- Data models ---
+
+@@ -102,13 +103,13 @@
+
+ final quickActionsProvider = Provider<List<QuickAction>>((ref) {
+   return const [
+-    QuickAction(icon: Icons.emoji_events, color: Color(0xFFFFC24B), label: 'Tournaments', route: Routes.tournaments),
+-    QuickAction(icon: Icons.groups, color: Color(0xFF3DDC84), label: 'My Team', route: Routes.teams),
+-    QuickAction(icon: Icons.search, color: Color(0xFF3DA9FC), label: 'Find Players'),
+-    QuickAction(icon: Icons.account_balance_wallet, color: Color(0xFFFFC24B), label: 'Wallet', route: Routes.wallet),
+-    QuickAction(icon: Icons.card_giftcard, color: Color(0xFFFF3D5A), label: 'Rewards'),
+-    QuickAction(icon: Icons.podcasts, color: Color(0xFFE23744), label: 'Live Match', route: Routes.matches),
+-    QuickAction(icon: Icons.history, color: Color(0xFF3DA9FC), label: 'History', route: Routes.walletTransactions),
+-    QuickAction(icon: Icons.headset_mic, color: Color(0xFF8B5CF6), label: 'Support'),
++    QuickAction(icon: Icons.emoji_events, color: AppColors.gold, label: 'Tournaments', route: Routes.tournaments),
++    QuickAction(icon: Icons.groups, color: AppColors.green, label: 'My Team', route: Routes.teams),
++    QuickAction(icon: Icons.search, color: AppColors.blue, label: 'Find Players'),
++    QuickAction(icon: Icons.account_balance_wallet, color: AppColors.gold, label: 'Wallet', route: Routes.wallet),
++    QuickAction(icon: Icons.card_giftcard, color: AppColors.pink, label: 'Rewards'),
++    QuickAction(icon: Icons.podcasts, color: AppColors.liveRed, label: 'Live Match', route: Routes.matches),
++    QuickAction(icon: Icons.history, color: AppColors.blue, label: 'History', route: Routes.walletTransactions),
++    QuickAction(icon: Icons.headset_mic, color: AppColors.purple, label: 'Support'),
+   ];
+ });
+\ No newline at end of file
+--- a/lib/./features/home/widgets/banner_slider.dart
++++ b/lib/./features/home/widgets/banner_slider.dart
+@@ -1,16 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../provider/home_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kPurple = Color(0xFF8B5CF6);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ class BannerSlider extends StatefulWidget {
+   final List<BannerItem> banners;
+@@ -86,7 +78,7 @@
+                   children: [
+                     Text(
+                       banner.tag,
+-                      style: const TextStyle(color: _kGold, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1),
++                      style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1),
+                     ),
+                     Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+@@ -123,14 +115,14 @@
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+-                          const Text('PRIZE POOL', style: TextStyle(color: _kTextSecondary, fontSize: 10, fontWeight: FontWeight.w700)),
++                          const Text('PRIZE POOL', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700)),
+                           const SizedBox(height: 2),
+-                          Text(banner.prize, style: const TextStyle(color: _kGold, fontSize: 20, fontWeight: FontWeight.w800)),
++                          Text(banner.prize, style: const TextStyle(color: AppColors.gold, fontSize: 20, fontWeight: FontWeight.w800)),
+                         ],
+                       ),
+                     ),
+                     Container(
+-                      decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(10)),
++                      decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(10)),
+                       child: TextButton(
+                         onPressed: banner.onJoin,
+                         style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12)),
+@@ -179,7 +171,7 @@
+       width: active ? 16 : 6,
+       height: 6,
+       decoration: BoxDecoration(
+-        color: active ? _kPurple : _kHairline,
++        color: active ? AppColors.purple : AppColors.hairline,
+         borderRadius: BorderRadius.circular(3),
+       ),
+     );
+--- a/lib/./features/home/widgets/featured_tournament_card.dart
++++ b/lib/./features/home/widgets/featured_tournament_card.dart
+@@ -1,14 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../../tournaments/model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kRed = Color(0xFFE23744);
+-const _kOrange = Color(0xFFFF6A3D);
+
+ const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+@@ -49,12 +43,12 @@
+   Color get _badgeColor {
+     switch (tournament.status) {
+       case TournamentStatus.live:
+-        return _kRed;
++        return AppColors.liveRed;
+       case TournamentStatus.upcoming:
+-        return tournament.isFull ? _kOrange : _kGreen;
++        return tournament.isFull ? AppColors.orange : AppColors.green;
+       case TournamentStatus.completed:
+       case TournamentStatus.cancelled:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+     }
+   }
+
+@@ -73,9 +67,9 @@
+       child: Container(
+         width: 220,
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(14),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+@@ -129,12 +123,12 @@
+                   const SizedBox(height: 4),
+                   Row(
+                     children: [
+-                      const Icon(Icons.access_time, color: _kGold, size: 12),
++                      const Icon(Icons.access_time, color: AppColors.gold, size: 12),
+                       const SizedBox(width: 4),
+                       Expanded(
+                         child: Text(
+                           _timeLabel,
+-                          style: const TextStyle(color: _kGold, fontSize: 10.5),
++                          style: const TextStyle(color: AppColors.gold, fontSize: 10.5),
+                           overflow: TextOverflow.ellipsis,
+                         ),
+                       ),
+@@ -144,10 +138,10 @@
+                   Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+-                      Text(_entryLabel, style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
++                      Text(_entryLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5)),
+                       Text(
+                         _prizeLabel,
+-                        style: const TextStyle(color: _kGreen, fontSize: 10.5, fontWeight: FontWeight.w700),
++                        style: const TextStyle(color: AppColors.green, fontSize: 10.5, fontWeight: FontWeight.w700),
+                       ),
+                     ],
+                   ),
+--- a/lib/./features/home/widgets/game_card.dart
++++ b/lib/./features/home/widgets/game_card.dart
+@@ -1,10 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../provider/home_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class GameCard extends StatelessWidget {
+   final GameItem game;
+@@ -20,9 +18,9 @@
+         width: 110,
+         padding: const EdgeInsets.all(10),
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(14),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         child: Column(
+           children: [
+@@ -33,7 +31,7 @@
+                   : Container(
+                 width: 56,
+                 height: 56,
+-                color: _kHairline,
++                color: AppColors.hairline,
+                 child: const Icon(Icons.videogame_asset, color: Colors.white54),
+               ),
+             ),
+@@ -47,7 +45,7 @@
+             const SizedBox(height: 2),
+             Text(
+               '${game.activePlayers} playing',
+-              style: const TextStyle(color: _kTextSecondary, fontSize: 9.5),
++              style: const TextStyle(color: AppColors.textSecondary, fontSize: 9.5),
+             ),
+           ],
+         ),
+--- a/lib/./features/leaderboard/presentation/leaderboard_screen.dart
++++ b/lib/./features/leaderboard/presentation/leaderboard_screen.dart
+@@ -4,9 +4,8 @@
+ import '../provider/leaderboard_provider.dart';
+ import '../widgets/top_three_card.dart';
+ import '../widgets/leaderboard_tile.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class LeaderboardScreen extends ConsumerStatefulWidget {
+   const LeaderboardScreen({super.key});
+@@ -22,15 +21,15 @@
+     final selectedId = ref.watch(selectedLeaderboardTournamentProvider);
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: const Text('Leaderboard'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: const Text('Leaderboard'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: tournamentsAsync.when(
+         loading: () => const Center(child: CircularProgressIndicator()),
+         error: (e, _) => Center(child: Text('Failed to load: $e', style: const TextStyle(color: Colors.white))),
+         data: (tournaments) {
+           if (tournaments.isEmpty) {
+             return const Center(
+-              child: Text('No tournaments to show a leaderboard for yet', style: TextStyle(color: _kTextSecondary)),
++              child: Text('No tournaments to show a leaderboard for yet', style: TextStyle(color: AppColors.textSecondary)),
+             );
+           }
+
+@@ -50,10 +49,10 @@
+                   initialValue: effectiveId,
+                   decoration: InputDecoration(
+                     filled: true,
+-                    fillColor: const Color(0xFF1E293B),
++                    fillColor: AppColors.surfaceDark,
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                   ),
+-                  dropdownColor: const Color(0xFF1E293B),
++                  dropdownColor: AppColors.surfaceDark,
+                   style: const TextStyle(color: Colors.white),
+                   items: tournaments
+                       .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name, overflow: TextOverflow.ellipsis)))
+@@ -71,7 +70,7 @@
+                       data: (entries) {
+                         if (entries.isEmpty) {
+                           return const Center(
+-                            child: Text('No results yet for this tournament', style: TextStyle(color: _kTextSecondary)),
++                            child: Text('No results yet for this tournament', style: TextStyle(color: AppColors.textSecondary)),
+                           );
+                         }
+                         final rest = entries.where((e) => e.rank > 3).toList();
+--- a/lib/./features/leaderboard/widgets/leaderboard_tile.dart
++++ b/lib/./features/leaderboard/widgets/leaderboard_tile.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../../tournaments/model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGreen = Color(0xFF3DDC84);
+
+ /// Row for ranks 4+ (top 3 are shown via TopThreeCard instead).
+ class LeaderboardTile extends StatelessWidget {
+@@ -19,9 +16,9 @@
+     return Container(
+       margin: const EdgeInsets.only(bottom: 8),
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(12),
+-        border: Border.all(color: isCurrentUserTeam ? _kGreen : _kHairline),
++        border: Border.all(color: isCurrentUserTeam ? AppColors.green : AppColors.hairline),
+       ),
+       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+       child: Row(
+@@ -30,21 +27,21 @@
+             width: 32,
+             child: Text(
+               '#${entry.rank}',
+-              style: const TextStyle(color: _kTextSecondary, fontSize: 13, fontWeight: FontWeight.w700),
++              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
+             ),
+           ),
+           Expanded(
+             child: Text(
+               entry.teamName,
+               style: TextStyle(
+-                color: isCurrentUserTeam ? _kGreen : Colors.white,
++                color: isCurrentUserTeam ? AppColors.green : Colors.white,
+                 fontSize: 13.5,
+                 fontWeight: FontWeight.w600,
+               ),
+               overflow: TextOverflow.ellipsis,
+             ),
+           ),
+-          Text('${entry.points} pts', style: const TextStyle(color: _kTextSecondary, fontSize: 12.5)),
++          Text('${entry.points} pts', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+         ],
+       ),
+     );
+--- a/lib/./features/leaderboard/widgets/top_three_card.dart
++++ b/lib/./features/leaderboard/widgets/top_three_card.dart
+@@ -1,13 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../../tournaments/model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kSilver = Color(0xFFC0C6D4);
+-const _kBronze = Color(0xFFCD7F32);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ /// Podium display for ranks 1–3. Expects [entries] already sorted by rank
+ /// and containing at least the top 3 (fewer than 3 renders the ones present).
+@@ -35,18 +30,18 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(16),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+       child: Row(
+         crossAxisAlignment: CrossAxisAlignment.end,
+         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+         children: [
+-          _podiumSlot(second, height: 78, color: _kSilver, icon: Icons.military_tech),
+-          _podiumSlot(first, height: 104, color: _kGold, icon: Icons.emoji_events),
+-          _podiumSlot(third, height: 60, color: _kBronze, icon: Icons.workspace_premium),
++          _podiumSlot(second, height: 78, color: AppColors.silver, icon: Icons.military_tech),
++          _podiumSlot(first, height: 104, color: AppColors.gold, icon: Icons.emoji_events),
++          _podiumSlot(third, height: 60, color: AppColors.bronze, icon: Icons.workspace_premium),
+         ],
+       ),
+     );
+@@ -57,7 +52,7 @@
+       child: Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+-          Icon(icon, color: entry == null ? _kTextSecondary : color, size: 26),
++          Icon(icon, color: entry == null ? AppColors.textSecondary : color, size: 26),
+           const SizedBox(height: 6),
+           Text(
+             entry?.teamName ?? '—',
+@@ -69,21 +64,21 @@
+           const SizedBox(height: 2),
+           Text(
+             entry != null ? '${entry.points} pts' : '',
+-            style: const TextStyle(color: _kTextSecondary, fontSize: 10.5),
++            style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5),
+           ),
+           const SizedBox(height: 8),
+           Container(
+             height: height,
+             decoration: BoxDecoration(
+-              color: (entry == null ? _kTextSecondary : color).withOpacity(0.18),
++              color: (entry == null ? AppColors.textSecondary : color).withOpacity(0.18),
+               borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+-              border: Border.all(color: (entry == null ? _kTextSecondary : color).withOpacity(0.4)),
++              border: Border.all(color: (entry == null ? AppColors.textSecondary : color).withOpacity(0.4)),
+             ),
+             alignment: Alignment.topCenter,
+             padding: const EdgeInsets.only(top: 8),
+             child: Text(
+               entry != null ? '#${entry.rank}' : '-',
+-              style: TextStyle(color: entry == null ? _kTextSecondary : color, fontWeight: FontWeight.w800),
++              style: TextStyle(color: entry == null ? AppColors.textSecondary : color, fontWeight: FontWeight.w800),
+             ),
+           ),
+         ],
+--- a/lib/./features/matches/presentation/match_details_screen.dart
++++ b/lib/./features/matches/presentation/match_details_screen.dart
+@@ -53,7 +53,7 @@
+   @override
+   Widget build(BuildContext context) => Container(
+         padding: const EdgeInsets.all(20),
+-        decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(16)),
++        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16)),
+         child: Column(children: [
+           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('ROUND ${match.round}', style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.w700)), MatchStatusChip(status: match.status)]),
+           const SizedBox(height: 28),
+@@ -72,7 +72,7 @@
+   @override
+   Widget build(BuildContext context) => Container(
+         padding: const EdgeInsets.all(16),
+-        decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF2A2C38))),
++        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.hairline)),
+         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+           const Text('Match information', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+           const SizedBox(height: 14),
+--- a/lib/./features/matches/presentation/match_result_screen.dart
++++ b/lib/./features/matches/presentation/match_result_screen.dart
+@@ -22,9 +22,9 @@
+             : Center(child: Padding(padding: const EdgeInsets.all(24), child: Container(
+                 width: double.infinity,
+                 padding: const EdgeInsets.all(28),
+-                decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFFFC24B))),
++                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.gold)),
+                 child: Column(mainAxisSize: MainAxisSize.min, children: [
+-                  const Icon(Icons.emoji_events, size: 58, color: Color(0xFFFFC24B)),
++                  const Icon(Icons.emoji_events, size: 58, color: AppColors.gold),
+                   const SizedBox(height: 16),
+                   Text(item.hasWinner ? 'Winner' : 'Result pending', style: const TextStyle(color: Colors.white54)),
+                   const SizedBox(height: 6),
+--- a/lib/./features/matches/widgets/match_card.dart
++++ b/lib/./features/matches/widgets/match_card.dart
+@@ -2,11 +2,8 @@
+
+ import '../models/match_model.dart';
+ import 'match_status_chip.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGreen = Color(0xFF3DDC84);
+
+ class MatchCard extends StatelessWidget {
+   final MatchModel match;
+@@ -27,9 +24,9 @@
+       onTap: onTap,
+       child: Container(
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(14),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         padding: const EdgeInsets.all(14),
+         child: Column(
+@@ -39,7 +36,7 @@
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 Text('Round ${match.round} · ${match.map}',
+-                    style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+                 MatchStatusChip(status: match.status),
+               ],
+             ),
+@@ -50,7 +47,7 @@
+                   child: Text(
+                     match.teamAName,
+                     style: TextStyle(
+-                      color: match.winnerId == match.teamAId ? _kGreen : Colors.white,
++                      color: match.winnerId == match.teamAId ? AppColors.green : Colors.white,
+                       fontSize: 14,
+                       fontWeight: FontWeight.w700,
+                     ),
+@@ -59,14 +56,14 @@
+                 ),
+                 const Padding(
+                   padding: EdgeInsets.symmetric(horizontal: 8),
+-                  child: Text('VS', style: TextStyle(color: _kTextSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
++                  child: Text('VS', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+                 ),
+                 Expanded(
+                   child: Text(
+                     match.teamBName,
+                     textAlign: TextAlign.right,
+                     style: TextStyle(
+-                      color: match.winnerId == match.teamBId ? _kGreen : Colors.white,
++                      color: match.winnerId == match.teamBId ? AppColors.green : Colors.white,
+                       fontSize: 14,
+                       fontWeight: FontWeight.w700,
+                     ),
+@@ -76,7 +73,7 @@
+               ],
+             ),
+             const SizedBox(height: 8),
+-            Text(_formatTime(match.scheduledAt), style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
++            Text(_formatTime(match.scheduledAt), style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+           ],
+         ),
+       ),
+--- a/lib/./features/matches/widgets/match_status_chip.dart
++++ b/lib/./features/matches/widgets/match_status_chip.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/material.dart';
+
+ import '../models/match_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+ class MatchStatusChip extends StatelessWidget {
+   final MatchStatus status;
+@@ -10,13 +11,13 @@
+   Color get _color {
+     switch (status) {
+       case MatchStatus.upcoming:
+-        return const Color(0xFFFF6A3D);
++        return AppColors.orange;
+       case MatchStatus.live:
+-        return const Color(0xFFE23744);
++        return AppColors.liveRed;
+       case MatchStatus.completed:
+-        return const Color(0xFF3DDC84);
++        return AppColors.green;
+       case MatchStatus.cancelled:
+-        return const Color(0xFF9CA0AF);
++        return AppColors.textSecondary;
+     }
+   }
+
+--- a/lib/./features/matches/widgets/room_info_card.dart
++++ b/lib/./features/matches/widgets/room_info_card.dart
+@@ -1,10 +1,7 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ /// Shows room ID/password once a match is live. Room info stays hidden
+ /// (with a placeholder) if the match hasn't started yet.
+@@ -27,9 +24,9 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(16),
+       child: hasInfo
+@@ -45,11 +42,11 @@
+       )
+           : const Row(
+         children: [
+-          Icon(Icons.lock_clock, color: _kTextSecondary, size: 20),
++          Icon(Icons.lock_clock, color: AppColors.textSecondary, size: 20),
+           SizedBox(width: 10),
+           Expanded(
+             child: Text('Room details will appear here once the match starts',
+-                style: TextStyle(color: _kTextSecondary, fontSize: 12.5)),
++                style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+           ),
+         ],
+       ),
+@@ -59,13 +56,13 @@
+   Widget _row(BuildContext context, String label, String value) {
+     return Row(
+       children: [
+-        SizedBox(width: 80, child: Text(label, style: const TextStyle(color: _kTextSecondary, fontSize: 12.5))),
++        SizedBox(width: 80, child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5))),
+         Expanded(
+-          child: Text(value, style: const TextStyle(color: _kGold, fontSize: 15, fontWeight: FontWeight.w700)),
++          child: Text(value, style: const TextStyle(color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w700)),
+         ),
+         GestureDetector(
+           onTap: () => _copy(context, label, value),
+-          child: const Icon(Icons.copy, color: _kTextSecondary, size: 17),
++          child: const Icon(Icons.copy, color: AppColors.textSecondary, size: 17),
+         ),
+       ],
+     );
+--- a/lib/./features/matches/widgets/winner_dialog.dart
++++ b/lib/./features/matches/widgets/winner_dialog.dart
+@@ -1,10 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../models/match_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGreen = Color(0xFF3DDC84);
+
+ /// Admin dialog to pick the winning team. Returns (winnerId, winnerName)
+ /// via Navigator.pop, or null if cancelled.
+@@ -23,7 +21,7 @@
+   @override
+   Widget build(BuildContext context) {
+     return AlertDialog(
+-      backgroundColor: _kCard,
++      backgroundColor: AppColors.card,
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+       title: const Text('Declare Winner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+       content: Column(
+@@ -48,7 +46,7 @@
+       width: double.infinity,
+       child: OutlinedButton(
+         style: OutlinedButton.styleFrom(
+-          side: const BorderSide(color: _kHairline),
++          side: const BorderSide(color: AppColors.hairline),
+           padding: const EdgeInsets.symmetric(vertical: 14),
+           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+         ),
+@@ -56,7 +54,7 @@
+         child: Row(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+-            const Icon(Icons.emoji_events, color: _kGreen, size: 18),
++            const Icon(Icons.emoji_events, color: AppColors.green, size: 18),
+             const SizedBox(width: 8),
+             Text(teamName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+           ],
+--- a/lib/./features/notifications/presentation/notifications_screen.dart
++++ b/lib/./features/notifications/presentation/notifications_screen.dart
+@@ -2,11 +2,8 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+ import '../provider/notification_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class NotificationsScreen extends ConsumerWidget {
+   const NotificationsScreen({super.key});
+@@ -25,8 +22,8 @@
+     final notificationsAsync = ref.watch(notificationsProvider);
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: const Text('Notifications'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: const Text('Notifications'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: notificationsAsync.when(
+         loading: () => const Center(child: CircularProgressIndicator()),
+         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white))),
+@@ -36,9 +33,9 @@
+               child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+-                  Icon(Icons.notifications_off_outlined, size: 56, color: _kTextSecondary),
++                  Icon(Icons.notifications_off_outlined, size: 56, color: AppColors.textSecondary),
+                   SizedBox(height: 12),
+-                  Text('No notifications yet', style: TextStyle(color: _kTextSecondary)),
++                  Text('No notifications yet', style: TextStyle(color: AppColors.textSecondary)),
+                 ],
+               ),
+             );
+@@ -52,9 +49,9 @@
+               final n = notifications[i];
+               return Container(
+                 decoration: BoxDecoration(
+-                  color: _kCard,
++                  color: AppColors.card,
+                   borderRadius: BorderRadius.circular(14),
+-                  border: Border.all(color: _kHairline),
++                  border: Border.all(color: AppColors.hairline),
+                 ),
+                 padding: const EdgeInsets.all(14),
+                 child: Row(
+@@ -76,9 +73,9 @@
+                         children: [
+                           Text(n.title, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                           const SizedBox(height: 4),
+-                          Text(n.body, style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
++                          Text(n.body, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                           const SizedBox(height: 6),
+-                          Text(_timeAgo(n.createdAt), style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
++                          Text(_timeAgo(n.createdAt), style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5)),
+                         ],
+                       ),
+                     ),
+--- a/lib/./features/notifications/provider/notification_provider.dart
++++ b/lib/./features/notifications/provider/notification_provider.dart
+@@ -3,6 +3,7 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+ import '../../auth/provider/auth_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+ enum NotificationType { tournament, wallet, team, general }
+
+@@ -51,13 +52,13 @@
+ Color colorFor(NotificationType type) {
+   switch (type) {
+     case NotificationType.tournament:
+-      return const Color(0xFFFFC24B);
++      return AppColors.gold;
+     case NotificationType.wallet:
+-      return const Color(0xFF3DDC84);
++      return AppColors.green;
+     case NotificationType.team:
+-      return const Color(0xFF3DA9FC);
++      return AppColors.blue;
+     case NotificationType.general:
+-      return const Color(0xFF9CA0AF);
++      return AppColors.textSecondary;
+   }
+ }
+
+--- a/lib/./features/profile/widgets/achievement_card.dart
++++ b/lib/./features/profile/widgets/achievement_card.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../provider/profile_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ const Map<String, IconData> _iconMap = {
+   'emoji_events': Icons.emoji_events,
+@@ -27,9 +24,9 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(12),
+       child: Row(
+@@ -38,10 +35,10 @@
+             width: 46,
+             height: 46,
+             decoration: BoxDecoration(
+-              color: (achievement.unlocked ? _kGold : _kTextSecondary).withOpacity(0.16),
++              color: (achievement.unlocked ? AppColors.gold : AppColors.textSecondary).withOpacity(0.16),
+               borderRadius: BorderRadius.circular(12),
+             ),
+-            child: Icon(icon, color: achievement.unlocked ? _kGold : _kTextSecondary, size: 22),
++            child: Icon(icon, color: achievement.unlocked ? AppColors.gold : AppColors.textSecondary, size: 22),
+           ),
+           const SizedBox(width: 12),
+           Expanded(
+@@ -51,17 +48,17 @@
+                 Text(
+                   achievement.title,
+                   style: TextStyle(
+-                    color: achievement.unlocked ? Colors.white : _kTextSecondary,
++                    color: achievement.unlocked ? Colors.white : AppColors.textSecondary,
+                     fontSize: 13.5,
+                     fontWeight: FontWeight.w700,
+                   ),
+                 ),
+                 const SizedBox(height: 2),
+-                Text(achievement.description, style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                Text(achievement.description, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+               ],
+             ),
+           ),
+-          if (!achievement.unlocked) const Icon(Icons.lock_outline, color: _kTextSecondary, size: 16),
++          if (!achievement.unlocked) const Icon(Icons.lock_outline, color: AppColors.textSecondary, size: 16),
+         ],
+       ),
+     );
+--- a/lib/./features/profile/widgets/custom_text_field.dart
++++ b/lib/./features/profile/widgets/custom_text_field.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+ /// Reusable styled text field used across auth and profile forms.
+ ///
+@@ -64,7 +65,7 @@
+                 : null,
+             suffixIcon: suffixIcon,
+             filled: true,
+-            fillColor: const Color(0xFFF7F8FC),
++            fillColor: AppColors.fieldLight,
+             contentPadding: const EdgeInsets.symmetric(
+               horizontal: 16,
+               vertical: 14,
+@@ -79,15 +80,15 @@
+             ),
+             focusedBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1.5),
+             ),
+             errorBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1),
+             ),
+             focusedErrorBorder: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(14),
+-              borderSide: const BorderSide(color: Color(0xFFFF3D5A), width: 1.5),
++              borderSide: const BorderSide(color: AppColors.pink, width: 1.5),
+             ),
+           ),
+         ),
+--- a/lib/./features/profile/widgets/edit_profile_form.dart
++++ b/lib/./features/profile/widgets/edit_profile_form.dart
+@@ -3,6 +3,7 @@
+ import '../../../core/widgets/app_textfield.dart';
+ import '../../../core/widgets/app_button.dart';
+ import '../provider/profile_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+ class EditProfileForm extends StatefulWidget {
+   final UserProfile profile;
+@@ -111,12 +112,12 @@
+             decoration: InputDecoration(
+               labelText: 'In-game Role',
+               filled: true,
+-              fillColor: const Color(0xFF1E293B),
++              fillColor: AppColors.surfaceDark,
+               border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(14),
+                   borderSide: BorderSide.none),
+             ),
+-            dropdownColor: const Color(0xFF1E293B),
++            dropdownColor: AppColors.surfaceDark,
+             style: const TextStyle(color: Colors.white),
+             items: _roles
+                 .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+--- a/lib/./features/profile/widgets/stats_card.dart
++++ b/lib/./features/profile/widgets/stats_card.dart
+@@ -1,9 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class StatsCard extends StatelessWidget {
+   final int matches;
+@@ -24,9 +21,9 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.symmetric(vertical: 14),
+       child: Row(
+@@ -35,13 +32,13 @@
+           return Expanded(
+             child: Row(
+               children: [
+-                if (i > 0) Container(width: 1, height: 26, color: _kHairline),
++                if (i > 0) Container(width: 1, height: 26, color: AppColors.hairline),
+                 Expanded(
+                   child: Column(
+                     children: [
+-                      Text(value, style: const TextStyle(color: _kGold, fontSize: 15, fontWeight: FontWeight.w800)),
++                      Text(value, style: const TextStyle(color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w800)),
+                       const SizedBox(height: 3),
+-                      Text(label, style: const TextStyle(color: _kTextSecondary, fontSize: 10)),
++                      Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+                     ],
+                   ),
+                 ),
+--- a/lib/./features/profile/widgets/user_form.dart
++++ b/lib/./features/profile/widgets/user_form.dart
+@@ -96,7 +96,7 @@
+       prefixIcon: Icon(icon, color: Colors.grey[500]),
+       suffixIcon: suffixIcon,
+       filled: true,
+-      fillColor: const Color(0xFFF7F8FC),
++      fillColor: AppColors.fieldLight,
+       border: OutlineInputBorder(
+         borderRadius: BorderRadius.circular(14),
+         borderSide: BorderSide.none,
+@@ -121,7 +121,7 @@
+     final theme = Theme.of(context);
+
+     return Scaffold(
+-      backgroundColor: const Color(0xFFF7F8FC),
++      backgroundColor: AppColors.fieldLight,
+       body: SafeArea(
+         child: SingleChildScrollView(
+           child: Column(
+--- a/lib/./features/teams/presentation/team_create_screen.dart
++++ b/lib/./features/teams/presentation/team_create_screen.dart
+@@ -8,17 +8,8 @@
+ import '../../../routes/route_names.dart';
+ import '../../auth/provider/auth_provider.dart';
+ import '../provider/team_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0B0C12);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kPink = Color(0xFFFF3D5A);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ /// Create a squad. The creator becomes captain; the team starts with one
+ /// member and an invite code that others can use to join.
+@@ -120,9 +111,9 @@
+   @override
+   Widget build(BuildContext context) {
+     return Scaffold(
+-      backgroundColor: _kBg,
++      backgroundColor: AppColors.backgroundDeep,
+       appBar: AppBar(
+-        backgroundColor: _kBg,
++        backgroundColor: AppColors.backgroundDeep,
+         elevation: 0,
+         centerTitle: true,
+         title: const Text('Create Team', style: TextStyle(fontWeight: FontWeight.w700)),
+@@ -142,7 +133,7 @@
+                   child: Container(
+                     width: 84,
+                     height: 84,
+-                    decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(20)),
++                    decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(20)),
+                     child: const Icon(Icons.shield, color: Colors.white, size: 42),
+                   ),
+                 ),
+@@ -167,21 +158,21 @@
+                 const SizedBox(height: 16),
+                 Container(
+                   decoration: BoxDecoration(
+-                    color: _kCard,
++                    color: AppColors.card,
+                     borderRadius: BorderRadius.circular(12),
+-                    border: Border.all(color: _kHairline),
++                    border: Border.all(color: AppColors.hairline),
+                   ),
+                   padding: const EdgeInsets.all(12),
+                   child: const Row(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+-                      Icon(Icons.info_outline, color: _kTextSecondary, size: 18),
++                      Icon(Icons.info_outline, color: AppColors.textSecondary, size: 18),
+                       SizedBox(width: 10),
+                       Expanded(
+                         child: Text(
+                           "You'll be the team captain. Squads hold up to 4 players — "
+                               'share your invite code from the team page to bring them in.',
+-                          style: TextStyle(color: _kTextSecondary, fontSize: 12.5, height: 1.35),
++                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.35),
+                         ),
+                       ),
+                     ],
+@@ -189,7 +180,7 @@
+                 ),
+                 if (_error != null) ...[
+                   const SizedBox(height: 14),
+-                  Text(_error!, style: const TextStyle(color: _kPink, fontSize: 13)),
++                  Text(_error!, style: const TextStyle(color: AppColors.pink, fontSize: 13)),
+                 ],
+                 const SizedBox(height: 24),
+                 AppButton(
+--- a/lib/./features/teams/presentation/team_details_screen.dart
++++ b/lib/./features/teams/presentation/team_details_screen.dart
+@@ -12,19 +12,8 @@
+ import '../repository/team_repository.dart';
+ import '../widgets/captain_badge.dart';
+ import '../widgets/player_tile.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0B0C12);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kPurple = Color(0xFF8B5CF6);
+-const _kGold = Color(0xFFFFC24B);
+-const _kPink = Color(0xFFFF3D5A);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ String _cleanError(Object e) => e.toString().replaceFirst('Exception: ', '');
+
+@@ -44,9 +33,9 @@
+     final teamAsync = ref.watch(teamDetailProvider(teamId));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
++      backgroundColor: AppColors.backgroundDeep,
+       appBar: AppBar(
+-        backgroundColor: _kBg,
++        backgroundColor: AppColors.backgroundDeep,
+         elevation: 0,
+         centerTitle: true,
+         title: const Text('Team', style: TextStyle(fontWeight: FontWeight.w700)),
+@@ -81,19 +70,19 @@
+       ) async {
+     final action = await showModalBottomSheet<String>(
+       context: context,
+-      backgroundColor: _kCard,
++      backgroundColor: AppColors.card,
+       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+       builder: (ctx) => SafeArea(
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             ListTile(
+-              leading: const Icon(Icons.workspace_premium, color: _kGold),
++              leading: const Icon(Icons.workspace_premium, color: AppColors.gold),
+               title: const Text('Make captain', style: TextStyle(color: Colors.white)),
+               onTap: () => Navigator.of(ctx).pop('captain'),
+             ),
+             ListTile(
+-              leading: const Icon(Icons.person_remove_outlined, color: _kPink),
++              leading: const Icon(Icons.person_remove_outlined, color: AppColors.pink),
+               title: const Text('Remove from team', style: TextStyle(color: Colors.white)),
+               onTap: () => Navigator.of(ctx).pop('remove'),
+             ),
+@@ -174,9 +163,9 @@
+         // Identity card
+         Container(
+           decoration: BoxDecoration(
+-            color: _kCard,
++            color: AppColors.card,
+             borderRadius: BorderRadius.circular(16),
+-            border: Border.all(color: _kPurple.withOpacity(0.45)),
++            border: Border.all(color: AppColors.purple.withOpacity(0.45)),
+           ),
+           padding: const EdgeInsets.all(16),
+           child: Row(
+@@ -184,7 +173,7 @@
+               Container(
+                 width: 60,
+                 height: 60,
+-                decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(14)),
++                decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(14)),
+                 child: team.logoUrl != null
+                     ? ClipRRect(
+                   borderRadius: BorderRadius.circular(14),
+@@ -213,7 +202,7 @@
+                     ),
+                     const SizedBox(height: 4),
+                     Text('${team.memberUids.length} / ${team.maxMembers} members · Tag: ${team.tag}',
+-                        style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
++                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                   ],
+                 ),
+               ),
+@@ -225,9 +214,9 @@
+         // Stats row
+         Container(
+           decoration: BoxDecoration(
+-            color: _kCard,
++            color: AppColors.card,
+             borderRadius: BorderRadius.circular(14),
+-            border: Border.all(color: _kHairline),
++            border: Border.all(color: AppColors.hairline),
+           ),
+           padding: const EdgeInsets.symmetric(vertical: 14),
+           child: Row(
+@@ -236,15 +225,15 @@
+               return Expanded(
+                 child: Row(
+                   children: [
+-                    if (i > 0) Container(width: 1, height: 26, color: _kHairline),
++                    if (i > 0) Container(width: 1, height: 26, color: AppColors.hairline),
+                     Expanded(
+                       child: Column(
+                         children: [
+                           Text(value,
+                               style: const TextStyle(
+-                                  color: _kGold, fontSize: 15, fontWeight: FontWeight.w800)),
++                                  color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w800)),
+                           const SizedBox(height: 3),
+-                          Text(label, style: const TextStyle(color: _kTextSecondary, fontSize: 10)),
++                          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+                         ],
+                       ),
+                     ),
+@@ -260,9 +249,9 @@
+           const SizedBox(height: 14),
+           Container(
+             decoration: BoxDecoration(
+-              color: _kCard,
++              color: AppColors.card,
+               borderRadius: BorderRadius.circular(14),
+-              border: Border.all(color: _kHairline),
++              border: Border.all(color: AppColors.hairline),
+             ),
+             padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+             child: Row(
+@@ -271,7 +260,7 @@
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+-                      const Text('Invite Code', style: TextStyle(color: _kTextSecondary, fontSize: 11)),
++                      const Text('Invite Code', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                       const SizedBox(height: 3),
+                       Text(team.inviteCode,
+                           style: const TextStyle(
+@@ -284,7 +273,7 @@
+                 ),
+                 IconButton(
+                   tooltip: 'Copy code',
+-                  icon: const Icon(Icons.copy_rounded, color: _kTextSecondary, size: 20),
++                  icon: const Icon(Icons.copy_rounded, color: AppColors.textSecondary, size: 20),
+                   onPressed: () async {
+                     await Clipboard.setData(ClipboardData(text: team.inviteCode));
+                     if (context.mounted) _snack(context, 'Invite code copied');
+@@ -303,7 +292,7 @@
+             const Text('Squad Members',
+                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+             Text('${team.memberUids.length}/${team.maxMembers}',
+-                style: const TextStyle(color: _kTextSecondary, fontSize: 12.5)),
++                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+           ],
+         ),
+         const SizedBox(height: 12),
+@@ -314,7 +303,7 @@
+           ),
+           error: (e, _) => const Padding(
+             padding: EdgeInsets.symmetric(vertical: 16),
+-            child: Text('Could not load members', style: TextStyle(color: _kTextSecondary)),
++            child: Text('Could not load members', style: TextStyle(color: AppColors.textSecondary)),
+           ),
+           data: (members) => Column(
+             children: members
+@@ -340,12 +329,12 @@
+                 Routes.teamChat,
+                 extra: {'teamId': team.id, 'teamName': team.name},
+               ),
+-              icon: const Icon(Icons.chat_bubble_outline, color: _kPurple, size: 18),
++              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.purple, size: 18),
+               label: const Text('Team Chat',
+-                  style: TextStyle(color: _kPurple, fontWeight: FontWeight.w700)),
++                  style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.w700)),
+               style: OutlinedButton.styleFrom(
+                 padding: const EdgeInsets.symmetric(vertical: 13),
+-                side: const BorderSide(color: _kPurple, width: 1.2),
++                side: const BorderSide(color: AppColors.purple, width: 1.2),
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+               ),
+             ),
+@@ -357,7 +346,7 @@
+               child: Text(
+                 'Captains must transfer captaincy before leaving the team.',
+                 textAlign: TextAlign.center,
+-                style: TextStyle(color: _kTextSecondary, fontSize: 12),
++                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+               ),
+             )
+           else
+@@ -365,12 +354,12 @@
+               width: double.infinity,
+               child: OutlinedButton.icon(
+                 onPressed: () => _leave(context, ref, uid!),
+-                icon: const Icon(Icons.logout, color: _kTextSecondary, size: 18),
++                icon: const Icon(Icons.logout, color: AppColors.textSecondary, size: 18),
+                 label: const Text('Leave Team',
+-                    style: TextStyle(color: _kTextSecondary, fontWeight: FontWeight.w600)),
++                    style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                 style: OutlinedButton.styleFrom(
+                   padding: const EdgeInsets.symmetric(vertical: 13),
+-                  side: const BorderSide(color: _kHairline),
++                  side: const BorderSide(color: AppColors.hairline),
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                 ),
+               ),
+--- a/lib/./features/teams/presentation/teams_screen.dart
++++ b/lib/./features/teams/presentation/teams_screen.dart
+@@ -1,24 +1,5 @@
+ import 'package:flutter/material.dart';
+-
+-/// ============================================================================
+-/// COLOR TOKENS — kept consistent with HomeScreen / TournamentsScreen.
+-/// ============================================================================
+-const kBg = Color(0xFF0B0C12);
+-const kCard = Color(0xFF171821);
+-const kHairline = Color(0xFF2A2C38);
+-const kTextPrimary = Colors.white;
+-const kTextSecondary = Color(0xFF9CA0AF);
+-const kPurple = Color(0xFF8B5CF6);
+-const kGold = Color(0xFFFFC24B);
+-const kOrange = Color(0xFFFF6A3D);
+-const kPink = Color(0xFFFF3D5A);
+-const kGreen = Color(0xFF3DDC84);
+-const kBlue = Color(0xFF3DA9FC);
+-const kBrandGradient = LinearGradient(
+-  colors: [kOrange, kPink],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
++import '../../../core/theme/app_colors.dart';
+
+ class _Member {
+   final String name;
+@@ -38,14 +19,14 @@
+     final bool hasTeam = true;
+
+     final members = const [
+-      _Member('Vishvrajsinh', 'Nader / IGL', kPurple, isCaptain: true),
+-      _Member('ShadowStrike99', 'Rusher', kOrange),
+-      _Member('DarkHunter', 'Secondary Rusher', kBlue),
+-      _Member('RDX Killer', 'Support', kGreen),
++      _Member('Vishvrajsinh', 'Nader / IGL', AppColors.purple, isCaptain: true),
++      _Member('ShadowStrike99', 'Rusher', AppColors.orange),
++      _Member('DarkHunter', 'Secondary Rusher', AppColors.blue),
++      _Member('RDX Killer', 'Support', AppColors.green),
+     ];
+
+     return Scaffold(
+-      backgroundColor: kBg,
++      backgroundColor: AppColors.backgroundDeep,
+       body: SafeArea(
+         child: hasTeam ? _buildTeamView(context, members) : _buildEmptyState(context),
+       ),
+@@ -65,10 +46,10 @@
+             children: [
+               const Text('Teams',
+                   style: TextStyle(
+-                      color: kTextPrimary, fontSize: 26, fontWeight: FontWeight.w800)),
++                      color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+               const SizedBox(height: 2),
+               Text('Squad up. Sync up. Win.',
+-                  style: TextStyle(color: kTextSecondary, fontSize: 13)),
++                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+             ],
+           ),
+         ),
+@@ -93,8 +74,8 @@
+             child: Container(
+               width: 40,
+               height: 40,
+-              decoration: BoxDecoration(color: kCard, shape: BoxShape.circle),
+-              child: const Icon(Icons.person_add_alt_1, color: kTextPrimary, size: 20),
++              decoration: BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
++              child: const Icon(Icons.person_add_alt_1, color: AppColors.white, size: 20),
+             ),
+           ),
+         ),
+@@ -108,8 +89,8 @@
+           children: [
+             Text('Squad Members',
+                 style: const TextStyle(
+-                    color: kTextPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+-            Text('${members.length}/4', style: TextStyle(color: kTextSecondary, fontSize: 12.5)),
++                    color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
++            Text('${members.length}/4', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+           ],
+         ),
+         const SizedBox(height: 12),
+@@ -124,12 +105,12 @@
+             onPressed: () {
+               // TODO: leave-team confirmation flow.
+             },
+-            icon: const Icon(Icons.logout, color: kTextSecondary, size: 18),
++            icon: const Icon(Icons.logout, color: AppColors.textSecondary, size: 18),
+             label: const Text('Leave Team',
+-                style: TextStyle(color: kTextSecondary, fontWeight: FontWeight.w600)),
++                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+             style: OutlinedButton.styleFrom(
+               padding: const EdgeInsets.symmetric(vertical: 13),
+-              side: BorderSide(color: kHairline),
++              side: BorderSide(color: AppColors.hairline),
+               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+             ),
+           ),
+@@ -144,9 +125,9 @@
+   Widget _buildTeamCard(BuildContext context, List<_Member> members) {
+     return Container(
+       decoration: BoxDecoration(
+-        color: kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(16),
+-        border: Border.all(color: kPurple.withOpacity(0.45)),
++        border: Border.all(color: AppColors.purple.withOpacity(0.45)),
+       ),
+       padding: const EdgeInsets.all(16),
+       child: Row(
+@@ -155,7 +136,7 @@
+             width: 60,
+             height: 60,
+             decoration: BoxDecoration(
+-              gradient: kBrandGradient,
++              gradient: AppColors.brandGradient,
+               borderRadius: BorderRadius.circular(14),
+             ),
+             child: const Icon(Icons.shield, color: Colors.white, size: 30),
+@@ -169,27 +150,27 @@
+                   children: [
+                     const Text('ESP Warriors',
+                         style: TextStyle(
+-                            color: kTextPrimary, fontSize: 17, fontWeight: FontWeight.w800)),
++                            color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                     const SizedBox(width: 6),
+                     Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                       decoration: BoxDecoration(
+-                        color: kGreen.withOpacity(0.16),
++                        color: AppColors.green.withOpacity(0.16),
+                         borderRadius: BorderRadius.circular(6),
+                       ),
+                       child: const Text('CAPTAIN',
+                           style: TextStyle(
+-                              color: kGreen, fontSize: 9, fontWeight: FontWeight.w800)),
++                              color: AppColors.green, fontSize: 9, fontWeight: FontWeight.w800)),
+                     ),
+                   ],
+                 ),
+                 const SizedBox(height: 4),
+                 Text('${members.length} / 4 members · Tag: ESPW',
+-                    style: TextStyle(color: kTextSecondary, fontSize: 12)),
++                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+               ],
+             ),
+           ),
+-          const Icon(Icons.chevron_right, color: kTextSecondary),
++          const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+         ],
+       ),
+     );
+@@ -207,9 +188,9 @@
+     ];
+     return Container(
+       decoration: BoxDecoration(
+-        color: kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.symmetric(vertical: 14),
+       child: Row(
+@@ -218,15 +199,15 @@
+           return Expanded(
+             child: Row(
+               children: [
+-                if (i > 0) Container(width: 1, height: 26, color: kHairline),
++                if (i > 0) Container(width: 1, height: 26, color: AppColors.hairline),
+                 Expanded(
+                   child: Column(
+                     children: [
+                       Text(value,
+                           style: const TextStyle(
+-                              color: kGold, fontSize: 15, fontWeight: FontWeight.w800)),
++                              color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w800)),
+                       const SizedBox(height: 3),
+-                      Text(label, style: TextStyle(color: kTextSecondary, fontSize: 10)),
++                      Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+                     ],
+                   ),
+                 ),
+@@ -244,9 +225,9 @@
+   Widget _buildMemberTile(BuildContext context, _Member m) {
+     return Container(
+       decoration: BoxDecoration(
+-        color: kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(12),
+       child: Row(
+@@ -266,15 +247,15 @@
+                   children: [
+                     Text(m.name,
+                         style: const TextStyle(
+-                            color: kTextPrimary, fontSize: 13.5, fontWeight: FontWeight.w700)),
++                            color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                     if (m.isCaptain) ...[
+                       const SizedBox(width: 6),
+-                      const Icon(Icons.workspace_premium, color: kGold, size: 14),
++                      const Icon(Icons.workspace_premium, color: AppColors.gold, size: 14),
+                     ],
+                   ],
+                 ),
+                 const SizedBox(height: 2),
+-                Text(m.role, style: TextStyle(color: kTextSecondary, fontSize: 11.5)),
++                Text(m.role, style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+               ],
+             ),
+           ),
+@@ -283,7 +264,7 @@
+               onTap: () {
+                 // TODO: open member options (message, remove, transfer captain).
+               },
+-              child: const Icon(Icons.more_vert, color: kTextSecondary, size: 18),
++              child: const Icon(Icons.more_vert, color: AppColors.textSecondary, size: 18),
+             ),
+         ],
+       ),
+@@ -309,21 +290,21 @@
+                   width: 84,
+                   height: 84,
+                   decoration: BoxDecoration(
+-                    color: kCard,
++                    color: AppColors.card,
+                     shape: BoxShape.circle,
+-                    border: Border.all(color: kHairline),
++                    border: Border.all(color: AppColors.hairline),
+                   ),
+-                  child: const Icon(Icons.groups_outlined, color: kTextSecondary, size: 36),
++                  child: const Icon(Icons.groups_outlined, color: AppColors.textSecondary, size: 36),
+                 ),
+                 const SizedBox(height: 16),
+                 const Text('You are not on a team yet',
+                     style: TextStyle(
+-                        color: kTextPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
++                        color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                 const SizedBox(height: 6),
+                 Text(
+                   'Create your own squad or join one with an invite code.',
+                   textAlign: TextAlign.center,
+-                  style: TextStyle(color: kTextSecondary, fontSize: 12.5),
++                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+                 ),
+               ],
+             ),
+@@ -333,7 +314,7 @@
+             width: double.infinity,
+             child: Container(
+               decoration: BoxDecoration(
+-                gradient: kBrandGradient,
++                gradient: AppColors.brandGradient,
+                 borderRadius: BorderRadius.circular(12),
+               ),
+               child: TextButton.icon(
+@@ -354,12 +335,12 @@
+               onPressed: () {
+                 // TODO: navigate to join-team flow (e.g. via invite code).
+               },
+-              icon: const Icon(Icons.login, color: kPurple),
++              icon: const Icon(Icons.login, color: AppColors.purple),
+               label: const Text('Join a Team',
+-                  style: TextStyle(color: kPurple, fontWeight: FontWeight.w700)),
++                  style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.w700)),
+               style: OutlinedButton.styleFrom(
+                 padding: const EdgeInsets.symmetric(vertical: 14),
+-                side: const BorderSide(color: kPurple, width: 1.2),
++                side: const BorderSide(color: AppColors.purple, width: 1.2),
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+               ),
+             ),
+--- a/lib/./features/teams/widgets/captain_badge.dart
++++ b/lib/./features/teams/widgets/captain_badge.dart
+@@ -1,7 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kGreen = Color(0xFF3DDC84);
+-const _kGold = Color(0xFFFFC24B);
+
+ /// Small pill badge, or bare icon variant for inline use next to a name.
+ class CaptainBadge extends StatelessWidget {
+@@ -12,17 +11,17 @@
+   @override
+   Widget build(BuildContext context) {
+     if (!asPill) {
+-      return const Icon(Icons.workspace_premium, color: _kGold, size: 14);
++      return const Icon(Icons.workspace_premium, color: AppColors.gold, size: 14);
+     }
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+       decoration: BoxDecoration(
+-        color: _kGreen.withOpacity(0.16),
++        color: AppColors.green.withOpacity(0.16),
+         borderRadius: BorderRadius.circular(6),
+       ),
+       child: const Text(
+         'CAPTAIN',
+-        style: TextStyle(color: _kGreen, fontSize: 9, fontWeight: FontWeight.w800),
++        style: TextStyle(color: AppColors.green, fontSize: 9, fontWeight: FontWeight.w800),
+       ),
+     );
+   }
+--- a/lib/./features/teams/widgets/player_tile.dart
++++ b/lib/./features/teams/widgets/player_tile.dart
+@@ -2,12 +2,8 @@
+
+ import '../repository/team_repository.dart';
+ import 'captain_badge.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextPrimary = Colors.white;
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kBlue = Color(0xFF3DA9FC);
+
+ class PlayerTile extends StatelessWidget {
+   final TeamMember member;
+@@ -25,9 +21,9 @@
+   Widget build(BuildContext context) {
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(12),
+       child: Row(
+@@ -35,7 +31,7 @@
+           Container(
+             width: 42,
+             height: 42,
+-            decoration: const BoxDecoration(color: _kBlue, shape: BoxShape.circle),
++            decoration: const BoxDecoration(color: AppColors.blue, shape: BoxShape.circle),
+             child: const Icon(Icons.face, color: Colors.white, size: 20),
+           ),
+           const SizedBox(width: 12),
+@@ -46,7 +42,7 @@
+                 Row(
+                   children: [
+                     Text(member.name,
+-                        style: const TextStyle(color: _kTextPrimary, fontSize: 13.5, fontWeight: FontWeight.w700)),
++                        style: const TextStyle(color: AppColors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                     if (member.isCaptain) ...[
+                       const SizedBox(width: 6),
+                       const CaptainBadge(asPill: false),
+@@ -54,14 +50,14 @@
+                   ],
+                 ),
+                 const SizedBox(height: 2),
+-                Text(member.role, style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                Text(member.role, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+               ],
+             ),
+           ),
+           if (showMoreMenu && !member.isCaptain)
+             GestureDetector(
+               onTap: onMoreTap,
+-              child: const Icon(Icons.more_vert, color: _kTextSecondary, size: 18),
++              child: const Icon(Icons.more_vert, color: AppColors.textSecondary, size: 18),
+             ),
+         ],
+       ),
+--- a/lib/./features/teams/widgets/team_card.dart
++++ b/lib/./features/teams/widgets/team_card.dart
+@@ -2,16 +2,8 @@
+
+ import '../repository/team_repository.dart';
+ import 'captain_badge.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kPurple = Color(0xFF8B5CF6);
+-const _kTextPrimary = Colors.white;
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ class TeamCard extends StatelessWidget {
+   final TeamModel team;
+@@ -26,9 +18,9 @@
+       onTap: onTap,
+       child: Container(
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(16),
+-          border: Border.all(color: _kPurple.withOpacity(0.45)),
++          border: Border.all(color: AppColors.purple.withOpacity(0.45)),
+         ),
+         padding: const EdgeInsets.all(16),
+         child: Row(
+@@ -36,7 +28,7 @@
+             Container(
+               width: 60,
+               height: 60,
+-              decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(14)),
++              decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(14)),
+               child: team.logoUrl != null
+                   ? ClipRRect(
+                 borderRadius: BorderRadius.circular(14),
+@@ -52,7 +44,7 @@
+                   Row(
+                     children: [
+                       Text(team.name,
+-                          style: const TextStyle(color: _kTextPrimary, fontSize: 17, fontWeight: FontWeight.w800)),
++                          style: const TextStyle(color: AppColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                       if (isViewerCaptain) ...[
+                         const SizedBox(width: 6),
+                         const CaptainBadge(),
+@@ -61,11 +53,11 @@
+                   ),
+                   const SizedBox(height: 4),
+                   Text('${team.memberUids.length} / ${team.maxMembers} members · Tag: ${team.tag}',
+-                      style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
++                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                 ],
+               ),
+             ),
+-            const Icon(Icons.chevron_right, color: _kTextSecondary),
++            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+           ],
+         ),
+       ),
+--- a/lib/./features/tournaments/presentation/tournament_details_screen.dart
++++ b/lib/./features/tournaments/presentation/tournament_details_screen.dart
+@@ -11,19 +11,8 @@
+ import '../provider/tournament_provider.dart';
+ import '../widgets/participant_tile.dart';
+ import '../widgets/prize_card.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0B0C12);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGold = Color(0xFFFFC24B);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kPurple = Color(0xFF8B5CF6);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ String _cleanError(Object? e) =>
+     (e?.toString() ?? 'Something went wrong').replaceFirst('Exception: ', '');
+@@ -49,9 +38,9 @@
+     final tournamentAsync = ref.watch(tournamentDetailProvider(tournamentId));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
++      backgroundColor: AppColors.backgroundDeep,
+       appBar: AppBar(
+-        backgroundColor: _kBg,
++        backgroundColor: AppColors.backgroundDeep,
+         elevation: 0,
+         centerTitle: true,
+         title: const Text('Tournament', style: TextStyle(fontWeight: FontWeight.w700)),
+@@ -101,12 +90,12 @@
+                 width: double.infinity,
+                 child: OutlinedButton.icon(
+                   onPressed: () => context.push(Routes.tournamentBracketPath(tournament.id)),
+-                  icon: const Icon(Icons.account_tree_outlined, color: _kPurple, size: 18),
++                  icon: const Icon(Icons.account_tree_outlined, color: AppColors.purple, size: 18),
+                   label: const Text('View Bracket',
+-                      style: TextStyle(color: _kPurple, fontWeight: FontWeight.w700)),
++                      style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.w700)),
+                   style: OutlinedButton.styleFrom(
+                     padding: const EdgeInsets.symmetric(vertical: 13),
+-                    side: const BorderSide(color: _kPurple, width: 1.2),
++                    side: const BorderSide(color: AppColors.purple, width: 1.2),
+                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                   ),
+                 ),
+@@ -118,7 +107,7 @@
+                   const Text('Registered Teams',
+                       style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                   Text('${tournament.currentParticipants}/${tournament.maxParticipants}',
+-                      style: const TextStyle(color: _kTextSecondary, fontSize: 12.5)),
++                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+                 ],
+               ),
+               const SizedBox(height: 10),
+@@ -129,20 +118,20 @@
+                 ),
+                 error: (e, _) => const Padding(
+                   padding: EdgeInsets.symmetric(vertical: 16),
+-                  child: Text('Could not load teams', style: TextStyle(color: _kTextSecondary)),
++                  child: Text('Could not load teams', style: TextStyle(color: AppColors.textSecondary)),
+                 ),
+                 data: (regs) {
+                   if (regs.isEmpty) {
+                     return const Padding(
+                       padding: EdgeInsets.symmetric(vertical: 16),
+-                      child: Text('No teams registered yet', style: TextStyle(color: _kTextSecondary)),
++                      child: Text('No teams registered yet', style: TextStyle(color: AppColors.textSecondary)),
+                     );
+                   }
+                   return Container(
+                     decoration: BoxDecoration(
+-                      color: _kCard,
++                      color: AppColors.card,
+                       borderRadius: BorderRadius.circular(14),
+-                      border: Border.all(color: _kHairline),
++                      border: Border.all(color: AppColors.hairline),
+                     ),
+                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                     child: Column(
+@@ -168,12 +157,12 @@
+   Color get _statusColor {
+     switch (tournament.status) {
+       case TournamentStatus.live:
+-        return const Color(0xFFE23744);
++        return AppColors.liveRed;
+       case TournamentStatus.upcoming:
+-        return const Color(0xFFFF6A3D);
++        return AppColors.orange;
+       case TournamentStatus.completed:
+       case TournamentStatus.cancelled:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+     }
+   }
+
+@@ -181,9 +170,9 @@
+   Widget build(BuildContext context) {
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(16),
+-        border: Border.all(color: _kPurple.withOpacity(0.45)),
++        border: Border.all(color: AppColors.purple.withOpacity(0.45)),
+       ),
+       padding: const EdgeInsets.all(16),
+       child: Row(
+@@ -191,7 +180,7 @@
+           Container(
+             width: 56,
+             height: 56,
+-            decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(14)),
++            decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(14)),
+             child: const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+           ),
+           const SizedBox(width: 14),
+@@ -203,7 +192,7 @@
+                     style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                 const SizedBox(height: 4),
+                 Text('${tournament.mode.name.toUpperCase()} • ${tournament.map}',
+-                    style: const TextStyle(color: _kTextSecondary, fontSize: 12)),
++                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+               ],
+             ),
+           ),
+@@ -232,9 +221,9 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(14),
+       child: Column(
+@@ -252,7 +241,7 @@
+                 child: _InfoTile(
+                   label: 'Prize Pool',
+                   value: '₹${tournament.prizePool.toStringAsFixed(0)}',
+-                  valueColor: _kGreen,
++                  valueColor: AppColors.green,
+                 ),
+               ),
+               Expanded(
+@@ -269,8 +258,8 @@
+             child: LinearProgressIndicator(
+               value: progress,
+               minHeight: 6,
+-              backgroundColor: _kHairline,
+-              valueColor: const AlwaysStoppedAnimation<Color>(_kGold),
++              backgroundColor: AppColors.hairline,
++              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
+             ),
+           ),
+         ],
+@@ -291,7 +280,7 @@
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+-        Text(label, style: const TextStyle(color: _kTextSecondary, fontSize: 11)),
++        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+         const SizedBox(height: 3),
+         Text(value, style: TextStyle(color: valueColor, fontSize: 14, fontWeight: FontWeight.w700)),
+       ],
+@@ -373,8 +362,8 @@
+
+     return Container(
+       decoration: const BoxDecoration(
+-        color: _kBg,
+-        border: Border(top: BorderSide(color: _kHairline)),
++        color: AppColors.backgroundDeep,
++        border: Border(top: BorderSide(color: AppColors.hairline)),
+       ),
+       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+       child: SafeArea(
+@@ -384,8 +373,8 @@
+           height: 50,
+           child: DecoratedBox(
+             decoration: BoxDecoration(
+-              gradient: enabled ? _kBrandGradient : null,
+-              color: enabled ? null : _kCard,
++              gradient: enabled ? AppColors.brandGradient : null,
++              color: enabled ? null : AppColors.card,
+               borderRadius: BorderRadius.circular(12),
+             ),
+             child: TextButton.icon(
+@@ -396,11 +385,11 @@
+                 height: 18,
+                 child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+               )
+-                  : Icon(icon, color: enabled ? Colors.white : _kTextSecondary, size: 18),
++                  : Icon(icon, color: enabled ? Colors.white : AppColors.textSecondary, size: 18),
+               label: Text(
+                 label,
+                 style: TextStyle(
+-                  color: enabled ? Colors.white : _kTextSecondary,
++                  color: enabled ? Colors.white : AppColors.textSecondary,
+                   fontWeight: FontWeight.w700,
+                 ),
+               ),
+--- a/lib/./features/tournaments/presentation/tournaments_screen.dart
++++ b/lib/./features/tournaments/presentation/tournaments_screen.dart
+@@ -1,18 +1,5 @@
+ import 'package:flutter/material.dart';
+-
+-/// ============================================================================
+-/// COLOR TOKENS — kept consistent with HomeScreen's dark palette.
+-/// ============================================================================
+-const kBg = Color(0xFF0B0C12);
+-const kCard = Color(0xFF171821);
+-const kChip = Color(0xFF1D1E29);
+-const kHairline = Color(0xFF2A2C38);
+-const kTextPrimary = Colors.white;
+-const kTextSecondary = Color(0xFF9CA0AF);
+-const kPurple = Color(0xFF8B5CF6);
+-const kGold = Color(0xFFFFC24B);
+-const kOrange = Color(0xFFFF6A3D);
+-const kGreen = Color(0xFF3DDC84);
++import '../../../core/theme/app_colors.dart';
+
+ enum _TournamentStatus { live, upcoming, completed }
+
+@@ -129,7 +116,7 @@
+         : _tournaments.where((t) => t.status == _TournamentStatus.completed).toList();
+
+     return Scaffold(
+-      backgroundColor: kBg,
++      backgroundColor: AppColors.backgroundDeep,
+       body: SafeArea(
+         child: Column(
+           children: [
+@@ -171,10 +158,10 @@
+             children: [
+               const Text('Tournaments',
+                   style: TextStyle(
+-                      color: kTextPrimary, fontSize: 26, fontWeight: FontWeight.w800)),
++                      color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+               const SizedBox(height: 2),
+               Text('Compete. Dominate. Win.',
+-                  style: TextStyle(color: kTextSecondary, fontSize: 13)),
++                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+             ],
+           ),
+         ),
+@@ -196,7 +183,7 @@
+         width: 40,
+         height: 40,
+         alignment: Alignment.center,
+-        child: Icon(icon, color: kTextPrimary, size: 22),
++        child: Icon(icon, color: AppColors.white, size: 22),
+       ),
+     );
+   }
+@@ -219,7 +206,7 @@
+                     _tabs[i].toUpperCase(),
+                     textAlign: TextAlign.center,
+                     style: TextStyle(
+-                      color: isActive ? kPurple : kTextSecondary,
++                      color: isActive ? AppColors.purple : AppColors.textSecondary,
+                       fontSize: 12,
+                       fontWeight: FontWeight.w700,
+                       letterSpacing: 0.4,
+@@ -228,7 +215,7 @@
+                   const SizedBox(height: 10),
+                   Container(
+                     height: 2,
+-                    color: isActive ? kPurple : Colors.transparent,
++                    color: isActive ? AppColors.purple : Colors.transparent,
+                   ),
+                 ],
+               ),
+@@ -258,21 +245,21 @@
+             child: Container(
+               padding: const EdgeInsets.symmetric(horizontal: 14),
+               decoration: BoxDecoration(
+-                color: isActive ? kPurple : kChip,
++                color: isActive ? AppColors.purple : AppColors.chip,
+                 borderRadius: BorderRadius.circular(20),
+-                border: Border.all(color: isActive ? kPurple : kHairline),
++                border: Border.all(color: isActive ? AppColors.purple : AppColors.hairline),
+               ),
+               child: Row(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                   if (icon != null) ...[
+-                    Icon(icon, size: 14, color: isActive ? Colors.white : kTextSecondary),
++                    Icon(icon, size: 14, color: isActive ? Colors.white : AppColors.textSecondary),
+                     const SizedBox(width: 6),
+                   ],
+                   Text(
+                     label,
+                     style: TextStyle(
+-                      color: isActive ? Colors.white : kTextSecondary,
++                      color: isActive ? Colors.white : AppColors.textSecondary,
+                       fontSize: 12.5,
+                       fontWeight: FontWeight.w600,
+                     ),
+@@ -291,14 +278,14 @@
+   // ============================================================================
+   Widget _buildTournamentCard(BuildContext context, _Tournament t) {
+     final isLive = t.status == _TournamentStatus.live;
+-    final badgeColor = isLive ? kGreen : kOrange;
++    final badgeColor = isLive ? AppColors.green : AppColors.orange;
+     final badgeLabel = isLive ? 'LIVE' : 'UPCOMING';
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(16),
+-        border: Border.all(color: kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(12),
+       child: Row(
+@@ -370,7 +357,7 @@
+                 Text(
+                   t.name,
+                   style: const TextStyle(
+-                      color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.w700),
++                      color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                 ),
+                 const SizedBox(height: 8),
+                 Row(
+@@ -383,21 +370,21 @@
+                 const SizedBox(height: 8),
+                 Row(
+                   children: [
+-                    Icon(Icons.calendar_today, size: 13, color: kTextSecondary),
++                    Icon(Icons.calendar_today, size: 13, color: AppColors.textSecondary),
+                     const SizedBox(width: 6),
+-                    Text(t.date, style: TextStyle(color: kTextSecondary, fontSize: 12)),
++                    Text(t.date, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                   ],
+                 ),
+                 const SizedBox(height: 6),
+                 Row(
+                   children: [
+-                    Icon(Icons.people_outline, size: 13, color: kTextSecondary),
++                    Icon(Icons.people_outline, size: 13, color: AppColors.textSecondary),
+                     const SizedBox(width: 6),
+-                    Text(t.teams, style: TextStyle(color: kTextSecondary, fontSize: 12)),
++                    Text(t.teams, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                   ],
+                 ),
+                 const SizedBox(height: 10),
+-                Divider(color: kHairline, height: 1),
++                Divider(color: AppColors.hairline, height: 1),
+                 const SizedBox(height: 10),
+                 Row(
+                   crossAxisAlignment: CrossAxisAlignment.end,
+@@ -408,13 +395,13 @@
+                         children: [
+                           Text('ENTRY FEE',
+                               style: TextStyle(
+-                                  color: kTextSecondary,
++                                  color: AppColors.textSecondary,
+                                   fontSize: 9.5,
+                                   fontWeight: FontWeight.w700)),
+                           const SizedBox(height: 3),
+                           Text(t.entryFee,
+                               style: TextStyle(
+-                                  color: t.entryFee == 'Free' ? kGreen : kGold,
++                                  color: t.entryFee == 'Free' ? AppColors.green : AppColors.gold,
+                                   fontSize: 14,
+                                   fontWeight: FontWeight.w700)),
+                         ],
+@@ -426,13 +413,13 @@
+                         children: [
+                           Text('PRIZE POOL',
+                               style: TextStyle(
+-                                  color: kTextSecondary,
++                                  color: AppColors.textSecondary,
+                                   fontSize: 9.5,
+                                   fontWeight: FontWeight.w700)),
+                           const SizedBox(height: 3),
+                           Text(t.prizePool,
+                               style: const TextStyle(
+-                                  color: kGreen, fontSize: 14, fontWeight: FontWeight.w700)),
++                                  color: AppColors.green, fontSize: 14, fontWeight: FontWeight.w700)),
+                         ],
+                       ),
+                     ),
+@@ -447,7 +434,7 @@
+                       // TODO: join tournament flow
+                     },
+                     style: ElevatedButton.styleFrom(
+-                      backgroundColor: kPurple,
++                      backgroundColor: AppColors.purple,
+                       elevation: 0,
+                       padding: const EdgeInsets.symmetric(vertical: 12),
+                       shape: RoundedRectangleBorder(
+@@ -464,14 +451,14 @@
+                       // TODO: view tournament details
+                     },
+                     style: OutlinedButton.styleFrom(
+-                      side: const BorderSide(color: kPurple, width: 1.2),
++                      side: const BorderSide(color: AppColors.purple, width: 1.2),
+                       padding: const EdgeInsets.symmetric(vertical: 12),
+                       shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(10)),
+                     ),
+                     child: const Text('VIEW DETAILS',
+                         style: TextStyle(
+-                            color: kPurple,
++                            color: AppColors.purple,
+                             fontWeight: FontWeight.w700,
+                             fontSize: 12.5)),
+                   ),
+@@ -488,9 +475,9 @@
+     return Row(
+       mainAxisSize: MainAxisSize.min,
+       children: [
+-        Icon(icon, size: 13, color: kPurple),
++        Icon(icon, size: 13, color: AppColors.purple),
+         const SizedBox(width: 5),
+-        Text(label, style: const TextStyle(color: kTextPrimary, fontSize: 12)),
++        Text(label, style: const TextStyle(color: AppColors.white, fontSize: 12)),
+       ],
+     );
+   }
+@@ -505,17 +492,17 @@
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+-            Icon(Icons.emoji_events_outlined, color: kTextSecondary, size: 40),
++            Icon(Icons.emoji_events_outlined, color: AppColors.textSecondary, size: 40),
+             const SizedBox(height: 12),
+             Text(
+               'Nothing here yet',
+-              style: TextStyle(color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.w600),
++              style: TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w600),
+             ),
+             const SizedBox(height: 6),
+             Text(
+               'Your completed tournaments will show up here.',
+               textAlign: TextAlign.center,
+-              style: TextStyle(color: kTextSecondary, fontSize: 12.5),
++              style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+             ),
+           ],
+         ),
+--- a/lib/./features/tournaments/widgets/bracket_widget.dart
++++ b/lib/./features/tournaments/widgets/bracket_widget.dart
+@@ -1,11 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../../matches/models/match_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGreen = Color(0xFF3DDC84);
+
+ /// Renders a single-elimination bracket as horizontally scrollable
+ /// rounds, each a vertical column of match cards.
+@@ -19,7 +16,7 @@
+   Widget build(BuildContext context) {
+     if (matches.isEmpty) {
+       return const Center(
+-        child: Text('Bracket not generated yet', style: TextStyle(color: _kTextSecondary)),
++        child: Text('Bracket not generated yet', style: TextStyle(color: AppColors.textSecondary)),
+       );
+     }
+
+@@ -68,15 +65,15 @@
+       child: Container(
+         width: 160,
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(10),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         padding: const EdgeInsets.all(10),
+         child: Column(
+           children: [
+             _row(match.teamAName, match.winnerId == match.teamAId),
+-            const Divider(color: _kHairline, height: 12),
++            const Divider(color: AppColors.hairline, height: 12),
+             _row(match.teamBName, match.winnerId == match.teamBId),
+           ],
+         ),
+@@ -91,14 +88,14 @@
+           child: Text(
+             name,
+             style: TextStyle(
+-              color: isWinner ? _kGreen : Colors.white,
++              color: isWinner ? AppColors.green : Colors.white,
+               fontSize: 12,
+               fontWeight: isWinner ? FontWeight.w700 : FontWeight.w400,
+             ),
+             overflow: TextOverflow.ellipsis,
+           ),
+         ),
+-        if (isWinner) const Icon(Icons.emoji_events, color: _kGreen, size: 14),
++        if (isWinner) const Icon(Icons.emoji_events, color: AppColors.green, size: 14),
+       ],
+     );
+   }
+--- a/lib/./features/tournaments/widgets/participant_tile.dart
++++ b/lib/./features/tournaments/widgets/participant_tile.dart
+@@ -1,10 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class ParticipantTile extends StatelessWidget {
+   final TeamRegistration registration;
+@@ -18,7 +16,7 @@
+       onTap: onTap,
+       contentPadding: EdgeInsets.zero,
+       leading: CircleAvatar(
+-        backgroundColor: _kHairline,
++        backgroundColor: AppColors.hairline,
+         backgroundImage: registration.logoUrl != null ? NetworkImage(registration.logoUrl!) : null,
+         child: registration.logoUrl == null
+             ? Text(registration.teamName.isNotEmpty ? registration.teamName[0].toUpperCase() : '?',
+@@ -27,8 +25,8 @@
+       ),
+       title: Text(registration.teamName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+       trailing: registration.checkedIn
+-          ? const Icon(Icons.check_circle, color: _kGreen, size: 18)
+-          : const Icon(Icons.schedule, color: _kTextSecondary, size: 18),
++          ? const Icon(Icons.check_circle, color: AppColors.green, size: 18)
++          : const Icon(Icons.schedule, color: AppColors.textSecondary, size: 18),
+     );
+   }
+ }
+\ No newline at end of file
+--- a/lib/./features/tournaments/widgets/prize_card.dart
++++ b/lib/./features/tournaments/widgets/prize_card.dart
+@@ -1,9 +1,6 @@
+ import 'package:flutter/material.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class PrizeCard extends StatelessWidget {
+   final Map<String, double> breakdown; // ordered: {"1st": x, "2nd": y, ...}
+@@ -27,9 +24,9 @@
+
+     return Container(
+       decoration: BoxDecoration(
+-        color: _kCard,
++        color: AppColors.card,
+         borderRadius: BorderRadius.circular(14),
+-        border: Border.all(color: _kHairline),
++        border: Border.all(color: AppColors.hairline),
+       ),
+       padding: const EdgeInsets.all(14),
+       child: Column(
+@@ -41,9 +38,9 @@
+             padding: const EdgeInsets.symmetric(vertical: 6),
+             child: Row(
+               children: [
+-                Icon(_iconFor(e.key), color: _kGold, size: 18),
++                Icon(_iconFor(e.key), color: AppColors.gold, size: 18),
+                 const SizedBox(width: 8),
+-                Text(e.key, style: const TextStyle(color: _kTextSecondary, fontSize: 13)),
++                Text(e.key, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                 const Spacer(),
+                 Text('₹${e.value.toStringAsFixed(0)}',
+                     style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+--- a/lib/./features/tournaments/widgets/tournament_card.dart
++++ b/lib/./features/tournaments/widgets/tournament_card.dart
+@@ -1,12 +1,8 @@
+ import 'package:flutter/material.dart';
+
+ import '../model/tournament_model.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kGold = Color(0xFFFFC24B);
+-const _kGreen = Color(0xFF3DDC84);
+
+ class TournamentCard extends StatelessWidget {
+   final Tournament tournament;
+@@ -17,13 +13,13 @@
+   Color get _statusColor {
+     switch (tournament.status) {
+       case TournamentStatus.live:
+-        return const Color(0xFFE23744);
++        return AppColors.liveRed;
+       case TournamentStatus.upcoming:
+-        return const Color(0xFFFF6A3D);
++        return AppColors.orange;
+       case TournamentStatus.completed:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+       case TournamentStatus.cancelled:
+-        return _kTextSecondary;
++        return AppColors.textSecondary;
+     }
+   }
+
+@@ -35,9 +31,9 @@
+       onTap: onTap,
+       child: Container(
+         decoration: BoxDecoration(
+-          color: _kCard,
++          color: AppColors.card,
+           borderRadius: BorderRadius.circular(14),
+-          border: Border.all(color: _kHairline),
++          border: Border.all(color: AppColors.hairline),
+         ),
+         padding: const EdgeInsets.all(14),
+         child: Column(
+@@ -63,21 +59,21 @@
+             ),
+             const SizedBox(height: 6),
+             Text('${tournament.mode.name.toUpperCase()} • ${tournament.map}',
+-                style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+             const SizedBox(height: 10),
+             Row(
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 Row(
+                   children: [
+-                    const Icon(Icons.groups, color: _kTextSecondary, size: 14),
++                    const Icon(Icons.groups, color: AppColors.textSecondary, size: 14),
+                     const SizedBox(width: 4),
+                     Text('${tournament.currentParticipants}/${tournament.maxParticipants}',
+-                        style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+                   ],
+                 ),
+                 Text('₹${tournament.prizePool.toStringAsFixed(0)} Prize',
+-                    style: const TextStyle(color: _kGreen, fontSize: 11.5, fontWeight: FontWeight.w700)),
++                    style: const TextStyle(color: AppColors.green, fontSize: 11.5, fontWeight: FontWeight.w700)),
+               ],
+             ),
+           ],
+--- a/lib/./features/wallet/presentation/transaction_screen.dart
++++ b/lib/./features/wallet/presentation/transaction_screen.dart
+@@ -4,12 +4,8 @@
+ import '../../auth/provider/auth_provider.dart';
+ import '../provider/wallet_provider.dart';
+ import '../repository/wallet_repository.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class TransactionScreen extends ConsumerWidget {
+   const TransactionScreen({super.key});
+@@ -32,10 +28,10 @@
+     final uid = ref.watch(authStateProvider).value?.uid;
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: const Text('Transaction History'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: const Text('Transaction History'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: uid == null
+-          ? const Center(child: Text('Please log in', style: TextStyle(color: _kTextSecondary)))
++          ? const Center(child: Text('Please log in', style: TextStyle(color: AppColors.textSecondary)))
+           : Consumer(
+         builder: (context, ref, _) {
+           final transactionsAsync = ref.watch(walletTransactionsProvider(uid));
+@@ -44,7 +40,7 @@
+             error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white))),
+             data: (transactions) {
+               if (transactions.isEmpty) {
+-                return const Center(child: Text('No transactions yet', style: TextStyle(color: _kTextSecondary)));
++                return const Center(child: Text('No transactions yet', style: TextStyle(color: AppColors.textSecondary)));
+               }
+               return ListView.separated(
+                 padding: const EdgeInsets.all(16),
+@@ -52,10 +48,10 @@
+                 separatorBuilder: (_, __) => const SizedBox(height: 8),
+                 itemBuilder: (context, i) {
+                   final t = transactions[i];
+-                  final color = t.isCredit ? _kGreen : Colors.redAccent;
++                  final color = t.isCredit ? AppColors.green : Colors.redAccent;
+                   final sign = t.isCredit ? '+' : '-';
+                   return Container(
+-                    decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kHairline)),
++                    decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.hairline)),
+                     padding: const EdgeInsets.all(14),
+                     child: Row(
+                       children: [
+@@ -71,7 +67,7 @@
+                             children: [
+                               Text(_labelFor(t.type), style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                               const SizedBox(height: 2),
+-                              Text(t.description, style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
++                              Text(t.description, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5)),
+                             ],
+                           ),
+                         ),
+--- a/lib/./features/wallet/presentation/wallet_screen.dart
++++ b/lib/./features/wallet/presentation/wallet_screen.dart
+@@ -6,18 +6,8 @@
+ import '../repository/wallet_repository.dart';
+ import 'transaction_screen.dart';
+ import 'withdraw_screen.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGold = Color(0xFFFFC24B);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-const _kBrandGradient = LinearGradient(
+-  colors: [Color(0xFFFF6A3D), Color(0xFFFF3D5A)],
+-  begin: Alignment.centerLeft,
+-  end: Alignment.centerRight,
+-);
+
+ class WalletScreen extends ConsumerWidget {
+   const WalletScreen({super.key});
+@@ -27,7 +17,7 @@
+
+     showModalBottomSheet(
+       context: context,
+-      backgroundColor: _kCard,
++      backgroundColor: AppColors.card,
+       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+       builder: (ctx) {
+         return Padding(
+@@ -47,16 +37,16 @@
+                 style: const TextStyle(color: Colors.white),
+                 decoration: InputDecoration(
+                   hintText: 'Enter amount',
+-                  hintStyle: const TextStyle(color: _kTextSecondary),
++                  hintStyle: const TextStyle(color: AppColors.textSecondary),
+                   filled: true,
+-                  fillColor: _kBg,
++                  fillColor: AppColors.backgroundDark,
+                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                 ),
+               ),
+               const SizedBox(height: 8),
+               const Text(
+                 'Payment gateway not yet integrated — this simulates a successful deposit.',
+-                style: TextStyle(color: _kTextSecondary, fontSize: 11),
++                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+               ),
+               const SizedBox(height: 16),
+               Consumer(
+@@ -66,7 +56,7 @@
+                     height: 50,
+                     child: ElevatedButton(
+                       style: ElevatedButton.styleFrom(
+-                        backgroundColor: const Color(0xFFFF3D5A),
++                        backgroundColor: AppColors.pink,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                       ),
+                       onPressed: state.isLoading
+@@ -100,8 +90,8 @@
+
+     if (uid == null) {
+       return const Scaffold(
+-        backgroundColor: _kBg,
+-        body: Center(child: Text('Please log in to view your wallet', style: TextStyle(color: _kTextSecondary))),
++        backgroundColor: AppColors.backgroundDark,
++        body: Center(child: Text('Please log in to view your wallet', style: TextStyle(color: AppColors.textSecondary))),
+       );
+     }
+
+@@ -109,15 +99,15 @@
+     final transactionsAsync = ref.watch(walletTransactionsProvider(uid));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: const Text('Wallet'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: const Text('Wallet'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: SingleChildScrollView(
+         padding: const EdgeInsets.all(16),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: [
+             Container(
+-              decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(18)),
++              decoration: BoxDecoration(gradient: AppColors.brandGradient, borderRadius: BorderRadius.circular(18)),
+               padding: const EdgeInsets.all(20),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+@@ -174,7 +164,7 @@
+                 const Text('Recent Transactions', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                 TextButton(
+                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionScreen())),
+-                  child: const Text('See all', style: TextStyle(color: _kGold, fontSize: 12.5)),
++                  child: const Text('See all', style: TextStyle(color: AppColors.gold, fontSize: 12.5)),
+                 ),
+               ],
+             ),
+@@ -186,7 +176,7 @@
+                 if (transactions.isEmpty) {
+                   return const Padding(
+                     padding: EdgeInsets.all(20),
+-                    child: Center(child: Text('No transactions yet', style: TextStyle(color: _kTextSecondary))),
++                    child: Center(child: Text('No transactions yet', style: TextStyle(color: AppColors.textSecondary))),
+                   );
+                 }
+                 return Column(
+@@ -201,12 +191,12 @@
+   }
+
+   Widget _transactionTile(WalletTransaction t) {
+-    final color = t.isCredit ? _kGreen : Colors.redAccent;
++    final color = t.isCredit ? AppColors.green : Colors.redAccent;
+     final sign = t.isCredit ? '+' : '-';
+
+     return Container(
+       margin: const EdgeInsets.only(bottom: 8),
+-      decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kHairline)),
++      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.hairline)),
+       padding: const EdgeInsets.all(12),
+       child: Row(
+         children: [
+@@ -218,7 +208,7 @@
+               children: [
+                 Text(t.description, style: const TextStyle(color: Colors.white, fontSize: 13), overflow: TextOverflow.ellipsis),
+                 Text('${t.createdAt.day}/${t.createdAt.month}/${t.createdAt.year}',
+-                    style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
++                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5)),
+               ],
+             ),
+           ),
+--- a/lib/./features/wallet/presentation/withdraw_screen.dart
++++ b/lib/./features/wallet/presentation/withdraw_screen.dart
+@@ -3,10 +3,8 @@
+
+ import '../../auth/provider/auth_provider.dart';
+ import '../provider/wallet_provider.dart';
++import '../../../core/theme/app_colors.dart';
+
+-const _kBg = Color(0xFF0F172A);
+-const _kCard = Color(0xFF171821);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+
+ class WithdrawScreen extends ConsumerStatefulWidget {
+   const WithdrawScreen({super.key});
+@@ -66,16 +64,16 @@
+
+     if (uid == null) {
+       return const Scaffold(
+-        backgroundColor: _kBg,
+-        body: Center(child: Text('Please log in', style: TextStyle(color: _kTextSecondary))),
++        backgroundColor: AppColors.backgroundDark,
++        body: Center(child: Text('Please log in', style: TextStyle(color: AppColors.textSecondary))),
+       );
+     }
+
+     final balanceAsync = ref.watch(walletBalanceProvider(uid));
+
+     return Scaffold(
+-      backgroundColor: _kBg,
+-      appBar: AppBar(title: const Text('Withdraw'), backgroundColor: _kBg, elevation: 0),
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(title: const Text('Withdraw'), backgroundColor: AppColors.backgroundDark, elevation: 0),
+       body: balanceAsync.when(
+         loading: () => const Center(child: CircularProgressIndicator()),
+         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white))),
+@@ -87,7 +85,7 @@
+               crossAxisAlignment: CrossAxisAlignment.stretch,
+               children: [
+                 Text('Available balance: ₹${balance.toStringAsFixed(2)}',
+-                    style: const TextStyle(color: _kTextSecondary, fontSize: 13)),
++                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                 const SizedBox(height: 20),
+                 TextFormField(
+                   controller: _amountController,
+@@ -95,9 +93,9 @@
+                   style: const TextStyle(color: Colors.white),
+                   decoration: InputDecoration(
+                     labelText: 'Amount',
+-                    labelStyle: const TextStyle(color: _kTextSecondary),
++                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                     filled: true,
+-                    fillColor: _kCard,
++                    fillColor: AppColors.card,
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                   ),
+                   validator: (v) {
+@@ -113,10 +111,10 @@
+                   decoration: InputDecoration(
+                     labelText: 'UPI ID',
+                     hintText: 'yourname@upi',
+-                    labelStyle: const TextStyle(color: _kTextSecondary),
+-                    hintStyle: const TextStyle(color: _kTextSecondary),
++                    labelStyle: const TextStyle(color: AppColors.textSecondary),
++                    hintStyle: const TextStyle(color: AppColors.textSecondary),
+                     filled: true,
+-                    fillColor: _kCard,
++                    fillColor: AppColors.card,
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                   ),
+                   validator: (v) => (v == null || v.trim().isEmpty) ? 'UPI ID is required' : null,
+@@ -126,7 +124,7 @@
+                   height: 52,
+                   child: ElevatedButton(
+                     style: ElevatedButton.styleFrom(
+-                      backgroundColor: const Color(0xFFFF3D5A),
++                      backgroundColor: AppColors.pink,
+                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                     ),
+                     onPressed: withdrawState.isLoading ? null : () => _submit(uid, balance),

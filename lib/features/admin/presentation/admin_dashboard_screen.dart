@@ -9,6 +9,9 @@ import '../widgets/dashboard_stat_card.dart';
 import '../widgets/admin_action_button.dart';
 import '../widgets/announcement_card.dart';
 
+import '../../../core/widgets/app_dialog.dart';
+import '../../auth/provider/auth_provider.dart';
+
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
@@ -23,6 +26,35 @@ class AdminDashboardScreen extends ConsumerWidget {
         backgroundColor: AppColors.backgroundDark,
         elevation: 0,
         title: const Text('Admin Dashboard'),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              final confirmed = await AppDialog.confirm(
+                context,
+                title: 'Logout',
+                message: 'Are you sure you want to log out of the admin panel?',
+                confirmText: 'Logout',
+                isDanger: true,
+              );
+              if (confirmed != true) return;
+              if (!context.mounted) return;
+
+              final messenger = ScaffoldMessenger.of(context);
+              final router = GoRouter.of(context);
+
+              try {
+                await ref.read(authRepositoryProvider).signOut();
+                router.go(Routes.login);
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Logout failed: $e')),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(dashboardStatsProvider),

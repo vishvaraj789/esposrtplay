@@ -1,18 +1,70 @@
 import 'package:flutter/material.dart';
 
-import '../provider/home_provider.dart';
+import '../../tournaments/model/tournament_model.dart';
 
 const _kCard = Color(0xFF171821);
 const _kHairline = Color(0xFF2A2C38);
 const _kGold = Color(0xFFFFC24B);
 const _kTextSecondary = Color(0xFF9CA0AF);
 const _kGreen = Color(0xFF3DDC84);
+const _kRed = Color(0xFFE23744);
+const _kOrange = Color(0xFFFF6A3D);
+
+const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+String _startLabel(DateTime start) {
+  final local = start.toLocal();
+  final now = DateTime.now();
+  final days = DateTime(local.year, local.month, local.day)
+      .difference(DateTime(now.year, now.month, now.day))
+      .inDays;
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final clock = '$hour:${local.minute.toString().padLeft(2, '0')} ${local.hour >= 12 ? 'PM' : 'AM'}';
+  if (days == 0) return 'Today, $clock';
+  if (days == 1) return 'Tomorrow, $clock';
+  return '${local.day} ${_months[local.month - 1]}, $clock';
+}
 
 class FeaturedTournamentCard extends StatelessWidget {
-  final TournamentItem tournament;
+  final Tournament tournament;
   final VoidCallback? onTap;
 
   const FeaturedTournamentCard({super.key, required this.tournament, this.onTap});
+
+  // Display values are derived from the real model — nothing here depends on
+  // extra presentation fields existing in Firestore.
+  String get _badge {
+    switch (tournament.status) {
+      case TournamentStatus.live:
+        return 'LIVE';
+      case TournamentStatus.upcoming:
+        return tournament.isFull ? 'FULL' : 'OPEN';
+      case TournamentStatus.completed:
+        return 'ENDED';
+      case TournamentStatus.cancelled:
+        return 'CANCELLED';
+    }
+  }
+
+  Color get _badgeColor {
+    switch (tournament.status) {
+      case TournamentStatus.live:
+        return _kRed;
+      case TournamentStatus.upcoming:
+        return tournament.isFull ? _kOrange : _kGreen;
+      case TournamentStatus.completed:
+      case TournamentStatus.cancelled:
+        return _kTextSecondary;
+    }
+  }
+
+  String get _timeLabel =>
+      tournament.status == TournamentStatus.live ? 'Live now' : _startLabel(tournament.startTime);
+
+  String get _entryLabel =>
+      tournament.entryFee == 0 ? 'Free entry' : '₹${tournament.entryFee.toStringAsFixed(0)} entry';
+
+  String get _prizeLabel => '₹${tournament.prizePool.toStringAsFixed(0)} Prize';
 
   @override
   Widget build(BuildContext context) {
@@ -51,11 +103,11 @@ class FeaturedTournamentCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: tournament.badgeColor,
+                        color: _badgeColor,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        tournament.badge,
+                        _badge,
                         style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800),
                       ),
                     ),
@@ -81,7 +133,7 @@ class FeaturedTournamentCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          tournament.time,
+                          _timeLabel,
                           style: const TextStyle(color: _kGold, fontSize: 10.5),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -92,9 +144,9 @@ class FeaturedTournamentCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(tournament.entry, style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
+                      Text(_entryLabel, style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
                       Text(
-                        tournament.prize,
+                        _prizeLabel,
                         style: const TextStyle(color: _kGreen, fontSize: 10.5, fontWeight: FontWeight.w700),
                       ),
                     ],

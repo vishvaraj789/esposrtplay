@@ -158,3 +158,16 @@ class LeaderboardEntry {
     );
   }
 }
+
+String _modeLabel(TournamentMode mode) {
+  switch (mode) {
+    case TournamentMode.solo:
+      return 'SOLO';
+    case TournamentMode.duo:
+      return 'DUO';
+    case TournamentMode.squad:
+      return 'SQUAD';
+    case TournamentMode.clashSquad:
+      return 'CLASH SQUAD';
+  }
+}

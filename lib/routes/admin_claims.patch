@@ -1,0 +1,272 @@
+diff -ruN orig/lib/core/constants/admin_config.dart eposrtplay/lib/core/constants/admin_config.dart
+--- orig/lib/core/constants/admin_config.dart	2026-10-04 07:33:55.037751304 +0000
++++ eposrtplay/lib/core/constants/admin_config.dart	2026-10-04 07:33:55.090180244 +0000
+@@ -1,5 +1,6 @@
+-/// The single hardcoded admin account. Access to the admin dashboard is
+-/// granted purely by matching this email — not by any Firestore field —
+-/// so it can't be changed by editing a document, only by editing this file
+-/// and redeploying the app.
+-const String kAdminEmail = 'vaghelavishvrajsinh010@example.com';
+\ No newline at end of file
++/// Name of the Firebase Auth custom claim that marks an admin account.
++///
++/// The claim is set server-side with the Admin SDK (see tools/set_admin_claim.js)
++/// and is signed into the user's ID token, so it can't be edited from the app.
++/// Firestore rules check the same claim: request.auth.token.admin == true.
++const String kAdminClaim = 'admin';
+diff -ruN orig/lib/core/utils/admin_claim.dart eposrtplay/lib/core/utils/admin_claim.dart
+--- orig/lib/core/utils/admin_claim.dart	1970-01-01 00:00:00.000000000 +0000
++++ eposrtplay/lib/core/utils/admin_claim.dart	2026-10-04 07:33:55.090302349 +0000
+@@ -0,0 +1,17 @@
++import 'package:firebase_auth/firebase_auth.dart';
++
++import '../constants/admin_config.dart';
++
++/// True if [user]'s ID token carries the admin custom claim.
++///
++/// Reads the cached token by default (no network). Pass [forceRefresh] right
++/// after a claim has been granted/revoked to pull a fresh token. Fails closed:
++/// any error is treated as "not admin".
++Future<bool> userHasAdminClaim(User user, {bool forceRefresh = false}) async {
++  try {
++    final result = await user.getIdTokenResult(forceRefresh);
++    return result.claims?[kAdminClaim] == true;
++  } catch (_) {
++    return false;
++  }
++}
+diff -ruN orig/lib/features/admin/provider/admin_provider.dart eposrtplay/lib/features/admin/provider/admin_provider.dart
+--- orig/lib/features/admin/provider/admin_provider.dart	2026-10-04 07:33:55.038208267 +0000
++++ eposrtplay/lib/features/admin/provider/admin_provider.dart	2026-10-04 07:33:55.091195158 +0000
+@@ -1,6 +1,6 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+-import '../../../core/constants/admin_config.dart';
++import '../../../core/utils/admin_claim.dart';
+ import '../../auth/provider/auth_provider.dart';
+ import '../models/admin_stats_model.dart';
+ import '../models/announcement_model.dart';
+@@ -8,11 +8,18 @@
+
+ final adminRepositoryProvider = Provider<AdminRepository>((ref) => AdminRepository());
+
+-/// True only once we've confirmed role == 'admin' on the user doc.
+-/// Defaults to false while loading or signed out — never fails open.
+-final isAdminProvider = Provider<bool>((ref) {
++/// Resolves the admin custom claim from the current user's ID token.
++/// Re-evaluates whenever authStateProvider emits (sign-in, sign-out, token refresh).
++final _adminClaimProvider = FutureProvider<bool>((ref) async {
+   final user = ref.watch(authStateProvider).value;
+-  return user?.email?.toLowerCase() == kAdminEmail.toLowerCase();
++  if (user == null) return false;
++  return userHasAdminClaim(user);
++});
++
++/// True only once the admin claim is confirmed on the ID token.
++/// False while loading, signed out, or on error: never fails open.
++final isAdminProvider = Provider<bool>((ref) {
++  return ref.watch(_adminClaimProvider).value ?? false;
+ });
+
+ final dashboardStatsProvider = FutureProvider.autoDispose<AdminStats>((ref) {
+diff -ruN orig/lib/features/admin/repository/admin_repository.dart eposrtplay/lib/features/admin/repository/admin_repository.dart
+--- orig/lib/features/admin/repository/admin_repository.dart	2026-10-04 07:33:55.038294485 +0000
++++ eposrtplay/lib/features/admin/repository/admin_repository.dart	2026-10-04 07:33:55.091501754 +0000
+@@ -8,13 +8,6 @@
+
+   AdminRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+
+-  /// Checks the signed-in user's `role` field on users/{uid}.
+-  Stream<bool> watchIsAdmin(String uid) {
+-    return _firestore.collection('users').doc(uid).snapshots().map(
+-          (doc) => doc.data()?['role'] == 'admin',
+-    );
+-  }
+-
+   /// One-shot aggregation for the dashboard header. Runs a handful of
+   /// count/sum queries in parallel rather than downloading full collections.
+   Future<AdminStats> fetchDashboardStats() async {
+diff -ruN orig/lib/features/auth/repository/auth_repository.dart eposrtplay/lib/features/auth/repository/auth_repository.dart
+--- orig/lib/features/auth/repository/auth_repository.dart	2026-10-04 07:33:55.038541321 +0000
++++ eposrtplay/lib/features/auth/repository/auth_repository.dart	2026-10-04 07:33:55.090521756 +0000
+@@ -14,7 +14,9 @@
+       : _auth = auth ?? FirebaseAuth.instance,
+         _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
+
+-  Stream<User?> get authStateChanges => _auth.authStateChanges();
++  /// Emits on sign-in/out AND whenever the ID token refreshes, so a newly
++  /// granted (or revoked) admin claim is picked up without signing out.
++  Stream<User?> get authStateChanges => _auth.idTokenChanges();
+   User? get currentUser => _auth.currentUser;
+
+   Future<UserCredential> signInWithEmail({
+diff -ruN orig/lib/routes/app_router.dart eposrtplay/lib/routes/app_router.dart
+--- orig/lib/routes/app_router.dart	2026-10-04 07:33:55.040161923 +0000
++++ eposrtplay/lib/routes/app_router.dart	2026-10-04 07:33:55.090942885 +0000
+@@ -6,7 +6,6 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:go_router/go_router.dart';
+
+-import '../features/admin/repository/admin_repository.dart';
+ import 'route_names.dart';
+ import 'placeholder_screen.dart';
+
+@@ -59,7 +58,7 @@
+ import '../features/tournaments/presentation/create_tournament_screen.dart';
+ import '../features/tournaments/presentation/bracket_screen.dart';
+
+-import '../core/constants/admin_config.dart';
++import '../core/utils/admin_claim.dart';
+
+ final routerProvider = Provider<GoRouter>((ref) {
+   final refreshNotifier = _AuthRefreshNotifier();
+@@ -218,19 +217,6 @@
+   }
+ }
+
+-/// Checks the signed-in user's role for admin-only routes. Fails closed
+-/// (denies access) on any error rather than hanging or leaking admin UI.
+-Future<bool> _isAdmin(String uid) async {
+-  try {
+-    final result = await AdminRepository().watchIsAdmin(uid).first.timeout(const Duration(seconds: 8));
+-    debugPrint('[admin] isAdmin($uid) = $result');
+-    return result;
+-  } catch (e) {
+-    debugPrint('[admin] isAdmin($uid) threw: $e');
+-    return false;
+-  }
+-}
+-
+ FutureOr<String?> _redirect(Ref ref, GoRouterState state) async {
+   final location = state.matchedLocation;
+   debugPrint('[redirect] location: $location');
+@@ -251,7 +237,7 @@
+     return target;
+   }
+
+-  final isAdminAccount = user.email?.toLowerCase() == kAdminEmail.toLowerCase();
++  final isAdminAccount = await userHasAdminClaim(user);
+
+   if (isAdminAccount) {
+     // Admin account: skip profile-completion entirely, never show player screens.
+@@ -286,9 +272,6 @@
+   return null;
+ }
+
+-// DELETE the old _isAdmin function entirely — replaced by the inline
+-// email comparison above, no Firestore round-trip or .timeout() needed.
+-
+ /// Re-runs the router redirect whenever authStateProvider changes.
+ /// Deliberately has no stream subscription of its own — it piggybacks on
+ /// authStateProvider (via ref.listen in routerProvider) rather than
+diff -ruN orig/lib/routes/route_guard.dart eposrtplay/lib/routes/route_guard.dart
+--- orig/lib/routes/route_guard.dart	2026-10-04 07:33:55.040310215 +0000
++++ eposrtplay/lib/routes/route_guard.dart	1970-01-01 00:00:00.000000000 +0000
+@@ -1,106 +0,0 @@
+-import 'package:cloud_firestore/cloud_firestore.dart';
+-
+-/// Handles all reads/writes to the `users` collection in Firestore.
+-/// Each document is keyed by the Firebase Auth UID, so there's a
+-/// 1:1 mapping between an authenticated user and their profile data.
+-class UserService {
+-  UserService._();
+-  static final UserService instance = UserService._();
+-
+-  final CollectionReference<Map<String, dynamic>> _usersRef =
+-  FirebaseFirestore.instance.collection('users');
+-
+-  /// UIDs known to have a completed profile. The router checks this on every
+-  /// navigation, so caching positives avoids a Firestore read per route change.
+-  /// Profiles are never deleted, so a cached `true` cannot go stale.
+-  final Set<String> _completedProfiles = {};
+-
+-  /// Called right after FirebaseAuth.createUserWithEmailAndPassword succeeds.
+-  /// Saves the extra profile fields your form collects that Firebase Auth
+-  /// itself doesn't store (UID game ID, nickname, role, etc.).
+-  ///
+-  /// Throws a [StateError] if a profile already exists for this uid, so a
+-  /// user can never accidentally submit UserForm twice and overwrite their
+-  /// original data.
+-  Future<void> createUserProfile({
+-    required String uid,
+-    required String fullName,
+-    required String email,
+-    required String freeFireUid,
+-    required String nickname,
+-    String? role,
+-    String? inGameRole,
+-  }) async {
+-    final docRef = _usersRef.doc(uid);
+-
+-    // Use a transaction so the existence check and the write happen
+-    // atomically — this closes the race where two rapid submits (e.g.
+-    // double-tapping the button) could both pass an existence check
+-    // before either one has written.
+-    await FirebaseFirestore.instance.runTransaction((transaction) async {
+-      final snapshot = await transaction.get(docRef);
+-      if (snapshot.exists) {
+-        throw StateError('A profile already exists for this account.');
+-      }
+-
+-      transaction.set(docRef, {
+-        'fullName': fullName,
+-        'email': email,
+-        'freeFireUid': freeFireUid,
+-        'nickname': nickname,
+-        'role': role,
+-        'inGameRole': inGameRole,
+-        'walletBalance': 0,
+-        'photoUrl': null,
+-        'createdAt': FieldValue.serverTimestamp(),
+-      });
+-    });
+-    _completedProfiles.add(uid);
+-  }
+-
+-  /// Adjusts a user's wallet balance by [delta] (positive to add coins,
+-  /// negative to spend them). Uses a transaction + increment so concurrent
+-  /// updates (e.g. tournament entry fee + prize payout at the same time)
+-  /// can't silently overwrite each other.
+-  Future<void> adjustWalletBalance(String uid, num delta) async {
+-    await _usersRef.doc(uid).update({
+-      'walletBalance': FieldValue.increment(delta),
+-    });
+-  }
+-
+-  /// Fetches a single user's profile document once (e.g. for Profile screen).
+-  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
+-    final snapshot = await _usersRef.doc(uid).get();
+-    return snapshot.data();
+-  }
+-
+-  /// Returns true if this user already completed UserForm (i.e. a Firestore
+-  /// profile document exists for them). Used by AuthGate to decide whether
+-  /// to show UserForm or skip straight into the main app.
+-  Future<bool> hasProfile(String uid) async {
+-    if (_completedProfiles.contains(uid)) return true;
+-    final snapshot = await _usersRef.doc(uid).get();
+-    if (snapshot.exists) _completedProfiles.add(uid);
+-    return snapshot.exists;
+-  }
+-
+-  /// Streams a single user's profile so UI updates live if the data changes
+-  /// (e.g. nickname edited from another device).
+-  Stream<Map<String, dynamic>?> watchUserProfile(String uid) {
+-    return _usersRef.doc(uid).snapshots().map((snapshot) => snapshot.data());
+-  }
+-
+-  /// Updates specific fields without overwriting the whole document.
+-  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
+-    await _usersRef.doc(uid).update(data);
+-  }
+-
+-  /// Streams all users with a given role (e.g. all "Organizer"s),
+-  /// useful for admin screens or team invites.
+-  Stream<List<Map<String, dynamic>>> watchUsersByRole(String role) {
+-    return _usersRef
+-        .where('role', isEqualTo: role)
+-        .snapshots()
+-        .map((query) => query.docs.map((doc) => doc.data()).toList());
+-  }
+-}
+\ No newline at end of file

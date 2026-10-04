@@ -1,8 +1,10 @@
 import 'package:characters/characters.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:go_router/go_router.dart';
+import '../../../routes/route_names.dart';
+import '../../auth/provider/auth_provider.dart';
 
 import '../provider/profile_provider.dart';
 import '../widgets/stats_card.dart';
@@ -12,7 +14,7 @@ import '../widgets/stats_card.dart';
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -34,47 +36,27 @@ class ProfileScreen extends ConsumerWidget {
     );
 
     if (confirmed != true) return;
-    if (!context.mounted) return;
 
-    // Simple loading indicator while signing out.
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    // Grab this before the await: after sign-out the router replaces this
+    // screen, so `context` won't be usable afterwards.
+    // Grab these before the await: after sign-out this screen is removed,
+    // so `context` won't be usable afterwards.
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
 
     try {
-      // Sign out of Firebase Auth (ends the app session) AND GoogleSignIn
-      // (clears the cached Google account). Without the second call, the
-      // GoogleSignIn plugin keeps a silent session cached on-device, so a
-      // future "Continue with Google" tap can skip the account picker
-      // entirely or default back to whichever account was used last.
-      await Future.wait([
-        FirebaseAuth.instance.signOut(),
-        GoogleSignIn.instance.signOut(),
-      ]);
-
-      if (!context.mounted) return;
-      Navigator.of(context).pop(); // close loading dialog
-
-      // No manual navigation here — GoRouter's redirect (in app_router.dart)
-      // reacts automatically once authStateChanges emits null and sends
-      // the user to Routes.login. A manual Navigator.pushNamed call here
-      // would use the old named-routes API, which this app no longer uses
-      // now that it's on MaterialApp.router + GoRouter.
-    } on FirebaseAuthException catch (e) {
-      if (!context.mounted) return;
-      Navigator.of(context).pop(); // close loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
+      await ref.read(authRepositoryProvider).signOut();
+      router.go(Routes.login);
+    } catch (e) {
+      messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: Text('Logout failed: ${e.message}'),
+          content: Text('Logout failed: $e'),
         ),
       );
     }
   }
-
   String _initials(String nickname) {
     final trimmed = nickname.trim();
     if (trimmed.isEmpty) return '?';
@@ -266,7 +248,7 @@ class ProfileScreen extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => _confirmLogout(context),
+                        onPressed: () => _confirmLogout(context, ref),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(color: Colors.red),

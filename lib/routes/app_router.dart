@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/admin/repository/admin_repository.dart';
 import 'route_names.dart';
 import 'placeholder_screen.dart';
 
@@ -20,6 +21,10 @@ import '../features/auth/presentation/otp_screen.dart';
 import '../features/profile/widgets/user_form.dart';
 
 import '../features/navigation/main_navigation.dart';
+import '../features/home/presentation/home_screen.dart';
+import '../features/teams/presentation/teams_screen.dart';
+import '../features/tournaments/presentation/tournaments_screen.dart';
+import '../features/profile/presentation/profile_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 
 import '../features/leaderboard/presentation/leaderboard_screen.dart';
@@ -50,7 +55,11 @@ import '../features/matches/presentation/match_result_screen.dart';
 import '../features/tournaments/presentation/tournament_details_screen.dart';
 import '../features/teams/presentation/team_create_screen.dart';
 import '../features/teams/presentation/team_details_screen.dart';
-import '../features/admin/repository/admin_repository.dart';
+
+import '../features/tournaments/presentation/create_tournament_screen.dart';
+import '../features/tournaments/presentation/bracket_screen.dart';
+
+import '../core/constants/admin_config.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRefreshNotifier();
@@ -82,7 +91,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: Routes.completeProfile, builder: (_, __) => const UserForm()),
 
-      GoRoute(path: Routes.home, builder: (_, __) => const MainNavigation()),
+      // ---- Bottom-nav shell: each tab is a real route with its own preserved stack ----
+      // Detail/create routes below stay *outside* the shell on purpose, so they
+      // open full-screen over the tab bar (same look as before).
+      StatefulShellRoute.indexedStack(
+        builder: (_, __, navigationShell) => MainNavigation(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(path: Routes.home, builder: (_, __) => const HomeScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: Routes.teams, builder: (_, __) => const TeamsScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: Routes.tournaments, builder: (_, __) => const TournamentsScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: Routes.profile, builder: (_, __) => const ProfileScreen()),
+          ]),
+        ],
+      ),
 
       GoRoute(path: Routes.leaderboard, builder: (_, __) => const LeaderboardScreen()),
 
@@ -114,14 +142,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ---- Tournaments (static 'create' before ':id') ----
-      GoRoute(path: Routes.tournamentCreate, builder: (_, __) => const RoutePlaceholderScreen(title: 'Create Tournament')),
+      GoRoute(path: Routes.tournamentCreate, builder: (_, __) => const CreateTournamentScreen()),
       GoRoute(
         path: Routes.tournamentDetails,
         builder: (_, state) => TournamentDetailsScreen(tournamentId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.tournamentBracket,
-        builder: (_, state) => RoutePlaceholderScreen(title: 'Tournament Bracket', details: 'id: ${state.pathParameters['id']}'),
+        builder: (_, state) => BracketScreen(tournamentId: state.pathParameters['id']!),
       ),
 
       // ---- Matches ----
@@ -213,44 +241,53 @@ FutureOr<String?> _redirect(Ref ref, GoRouterState state) async {
   try {
     user = await ref.read(authStateProvider.future).timeout(const Duration(seconds: 8));
   } catch (_) {
-    user = null; // fail safe -> treat as logged out rather than hang
+    user = null;
   }
   debugPrint('[redirect] user: ${user?.uid}');
 
-  // Not logged in: only auth screens are reachable.
   if (user == null) {
     final target = _authRoutes.contains(location) ? null : Routes.login;
     debugPrint('[redirect] not logged in -> $target');
     return target;
   }
 
+  final isAdminAccount = user.email?.toLowerCase() == kAdminEmail.toLowerCase();
+
+  if (isAdminAccount) {
+    // Admin account: skip profile-completion entirely, never show player screens.
+    if (!location.startsWith('/admin')) {
+      debugPrint('[redirect] admin account -> admin dashboard');
+      return Routes.adminDashboard;
+    }
+    debugPrint('[redirect] admin on admin route, staying');
+    return null;
+  }
+
+  // Non-admin accounts can never reach /admin, regardless of anything else.
+  if (location.startsWith('/admin')) {
+    debugPrint('[redirect] not admin, blocked from $location -> home');
+    return Routes.home;
+  }
+
   final hasProfile = await _profileComplete(user.uid);
 
-  // Logged in, profile incomplete: force the UserForm.
   if (!hasProfile) {
     final target = location == Routes.completeProfile ? null : Routes.completeProfile;
     debugPrint('[redirect] no profile -> $target');
     return target;
   }
 
-  // Logged in, profile complete: keep them out of auth screens and the form.
   if (_authRoutes.contains(location) || location == Routes.completeProfile) {
     debugPrint('[redirect] has profile, on auth/form screen -> home');
     return Routes.home;
   }
 
-  // Admin guard: bounce non-admins away from /admin entirely.
-  if (location.startsWith('/admin')) {
-    final isAdmin = await _isAdmin(user.uid);
-    if (!isAdmin) {
-      debugPrint('[redirect] not admin, blocked from $location -> home');
-      return Routes.home;
-    }
-  }
-
   debugPrint('[redirect] no redirect needed, staying at $location');
   return null;
 }
+
+// DELETE the old _isAdmin function entirely — replaced by the inline
+// email comparison above, no Firestore round-trip or .timeout() needed.
 
 /// Re-runs the router redirect whenever authStateProvider changes.
 /// Deliberately has no stream subscription of its own — it piggybacks on

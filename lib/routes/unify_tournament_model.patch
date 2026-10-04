@@ -1,0 +1,213 @@
+--- a/lib/features/tournaments/provider/tournament_provider.dart
++++ b/lib/features/tournaments/provider/tournament_provider.dart
+@@ -12,6 +12,20 @@
+   return ref.watch(tournamentRepositoryProvider).watchTournaments(status: status);
+ });
+
++/// Live tournaments first, then upcoming — feeds Home's "Live & Upcoming" row.
++/// Built on [tournamentsProvider] (same server-side status filter the
++/// Tournaments tab and leaderboard use) rather than a second Firestore query.
++final liveAndUpcomingTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {
++  final live = ref.watch(tournamentsProvider(TournamentStatus.live));
++  final upcoming = ref.watch(tournamentsProvider(TournamentStatus.upcoming));
++
++  if (live.isLoading || upcoming.isLoading) return const AsyncLoading();
++  if (live.hasError) return AsyncError(live.error!, live.stackTrace!);
++  if (upcoming.hasError) return AsyncError(upcoming.error!, upcoming.stackTrace!);
++
++  return AsyncData([...?live.value, ...?upcoming.value].take(10).toList());
++});
++
+ final tournamentDetailProvider = StreamProvider.family<Tournament?, String>((ref, id) {
+   return ref.watch(tournamentRepositoryProvider).watchTournament(id);
+ });
+--- a/lib/features/home/provider/home_provider.dart
++++ b/lib/features/home/provider/home_provider.dart
+@@ -40,38 +40,6 @@
+   }
+ }
+
+-class TournamentItem {
+-  final String id;
+-  final String name;
+-  final String badge;
+-  final Color badgeColor;
+-  final String time;
+-  final String entry;
+-  final String prize;
+-
+-  const TournamentItem({
+-    required this.id,
+-    required this.name,
+-    required this.badge,
+-    required this.badgeColor,
+-    required this.time,
+-    required this.entry,
+-    required this.prize,
+-  });
+-
+-  factory TournamentItem.fromFirestore(String id, Map<String, dynamic> data) {
+-    return TournamentItem(
+-      id: id,
+-      name: data['name'] ?? '',
+-      badge: data['badge'] ?? 'OPEN',
+-      badgeColor: Color(data['badgeColor'] ?? 0xFF3DDC84),
+-      time: data['time'] ?? '',
+-      entry: data['entry'] ?? '',
+-      prize: data['prize'] ?? '',
+-    );
+-  }
+-}
+-
+ class QuickAction {
+   final IconData icon;
+   final Color color;
+@@ -122,18 +90,6 @@
+       .map((snap) => snap.docs.map((d) => BannerItem.fromFirestore(d.data())).toList());
+ });
+
+-final tournamentsProvider = StreamProvider<List<TournamentItem>>((ref) {
+-  final firestore = ref.watch(_firestoreProvider);
+-  return firestore
+-      .collection('tournaments')
+-      .orderBy('startTime')
+-      .limit(10)
+-      .snapshots()
+-      .map((snap) => snap.docs
+-      .map((d) => TournamentItem.fromFirestore(d.id, d.data()))
+-      .toList());
+-});
+-
+ final gamesProvider = StreamProvider<List<GameItem>>((ref) {
+   final firestore = ref.watch(_firestoreProvider);
+   return firestore
+--- a/lib/features/home/widgets/featured_tournament_card.dart
++++ b/lib/features/home/widgets/featured_tournament_card.dart
+@@ -1,19 +1,71 @@
+ import 'package:flutter/material.dart';
+
+-import '../provider/home_provider.dart';
++import '../../tournaments/model/tournament_model.dart';
+
+ const _kCard = Color(0xFF171821);
+ const _kHairline = Color(0xFF2A2C38);
+ const _kGold = Color(0xFFFFC24B);
+ const _kTextSecondary = Color(0xFF9CA0AF);
+ const _kGreen = Color(0xFF3DDC84);
++const _kRed = Color(0xFFE23744);
++const _kOrange = Color(0xFFFF6A3D);
++
++const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
++
++String _startLabel(DateTime start) {
++  final local = start.toLocal();
++  final now = DateTime.now();
++  final days = DateTime(local.year, local.month, local.day)
++      .difference(DateTime(now.year, now.month, now.day))
++      .inDays;
++  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
++  final clock = '$hour:${local.minute.toString().padLeft(2, '0')} ${local.hour >= 12 ? 'PM' : 'AM'}';
++  if (days == 0) return 'Today, $clock';
++  if (days == 1) return 'Tomorrow, $clock';
++  return '${local.day} ${_months[local.month - 1]}, $clock';
++}
+
+ class FeaturedTournamentCard extends StatelessWidget {
+-  final TournamentItem tournament;
++  final Tournament tournament;
+   final VoidCallback? onTap;
+
+   const FeaturedTournamentCard({super.key, required this.tournament, this.onTap});
+
++  // Display values are derived from the real model — nothing here depends on
++  // extra presentation fields existing in Firestore.
++  String get _badge {
++    switch (tournament.status) {
++      case TournamentStatus.live:
++        return 'LIVE';
++      case TournamentStatus.upcoming:
++        return tournament.isFull ? 'FULL' : 'OPEN';
++      case TournamentStatus.completed:
++        return 'ENDED';
++      case TournamentStatus.cancelled:
++        return 'CANCELLED';
++    }
++  }
++
++  Color get _badgeColor {
++    switch (tournament.status) {
++      case TournamentStatus.live:
++        return _kRed;
++      case TournamentStatus.upcoming:
++        return tournament.isFull ? _kOrange : _kGreen;
++      case TournamentStatus.completed:
++      case TournamentStatus.cancelled:
++        return _kTextSecondary;
++    }
++  }
++
++  String get _timeLabel =>
++      tournament.status == TournamentStatus.live ? 'Live now' : _startLabel(tournament.startTime);
++
++  String get _entryLabel =>
++      tournament.entryFee == 0 ? 'Free entry' : '₹${tournament.entryFee.toStringAsFixed(0)} entry';
++
++  String get _prizeLabel => '₹${tournament.prizePool.toStringAsFixed(0)} Prize';
++
+   @override
+   Widget build(BuildContext context) {
+     return GestureDetector(
+@@ -51,11 +103,11 @@
+                     child: Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                       decoration: BoxDecoration(
+-                        color: tournament.badgeColor,
++                        color: _badgeColor,
+                         borderRadius: BorderRadius.circular(6),
+                       ),
+                       child: Text(
+-                        tournament.badge,
++                        _badge,
+                         style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800),
+                       ),
+                     ),
+@@ -81,7 +133,7 @@
+                       const SizedBox(width: 4),
+                       Expanded(
+                         child: Text(
+-                          tournament.time,
++                          _timeLabel,
+                           style: const TextStyle(color: _kGold, fontSize: 10.5),
+                           overflow: TextOverflow.ellipsis,
+                         ),
+@@ -92,9 +144,9 @@
+                   Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+-                      Text(tournament.entry, style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
++                      Text(_entryLabel, style: const TextStyle(color: _kTextSecondary, fontSize: 10.5)),
+                       Text(
+-                        tournament.prize,
++                        _prizeLabel,
+                         style: const TextStyle(color: _kGreen, fontSize: 10.5, fontWeight: FontWeight.w700),
+                       ),
+                     ],
+--- a/lib/features/home/presentation/home_screen.dart
++++ b/lib/features/home/presentation/home_screen.dart
+@@ -7,6 +7,7 @@
+ import '../../auth/provider/auth_provider.dart';
+ import '../../profile/provider/profile_provider.dart';
+ import '../../wallet/provider/wallet_provider.dart';
++import '../../tournaments/provider/tournament_provider.dart';
+ import '../provider/home_provider.dart';
+ import '../widgets/banner_slider.dart';
+ import '../widgets/quick_action_card.dart';
+@@ -21,7 +22,7 @@
+     final uid = ref.watch(authStateProvider).value?.uid;
+     final profileAsync = ref.watch(currentUserProfileProvider);
+     final bannersAsync = ref.watch(bannersProvider);
+-    final tournamentsAsync = ref.watch(tournamentsProvider);
++    final tournamentsAsync = ref.watch(liveAndUpcomingTournamentsProvider);
+     final gamesAsync = ref.watch(gamesProvider);
+     final quickActions = ref.watch(quickActionsProvider);
+     final balanceAsync = uid != null ? ref.watch(walletBalanceProvider(uid)) : null;

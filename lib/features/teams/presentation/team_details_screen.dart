@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/widgets/app_dialog.dart';
 import '../../../core/widgets/app_loader.dart';
 import '../../../core/widgets/empty_widget.dart';
 import '../../../routes/route_names.dart';
@@ -12,6 +11,7 @@ import '../provider/team_provider.dart';
 import '../repository/team_repository.dart';
 import '../widgets/captain_badge.dart';
 import '../widgets/player_tile.dart';
+import '../widgets/team_actions.dart';
 
 const _kBg = Color(0xFF0B0C12);
 const _kCard = Color(0xFF171821);
@@ -25,12 +25,6 @@ const _kBrandGradient = LinearGradient(
   begin: Alignment.centerLeft,
   end: Alignment.centerRight,
 );
-
-String _cleanError(Object e) => e.toString().replaceFirst('Exception: ', '');
-
-void _snack(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-}
 
 /// Team page: identity, stats, squad list, and role-appropriate actions
 /// (invite code + chat + leave for members; transfer/remove for the captain).
@@ -72,87 +66,6 @@ class _Body extends ConsumerWidget {
   final TeamModel team;
 
   const _Body({required this.team});
-
-  Future<void> _showMemberMenu(
-      BuildContext context,
-      WidgetRef ref,
-      TeamMember member,
-      String myUid,
-      ) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: _kCard,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.workspace_premium, color: _kGold),
-              title: const Text('Make captain', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.of(ctx).pop('captain'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_remove_outlined, color: _kPink),
-              title: const Text('Remove from team', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.of(ctx).pop('remove'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (action == null || !context.mounted) return;
-
-    final repo = ref.read(teamRepositoryProvider);
-
-    if (action == 'captain') {
-      final ok = await AppDialog.confirm(
-        context,
-        title: 'Make ${member.name} captain?',
-        message: 'You will lose captain controls for this team.',
-        confirmText: 'Transfer',
-      );
-      if (ok != true || !context.mounted) return;
-      try {
-        await repo.transferCaptain(teamId: team.id, newCaptainUid: member.uid, oldCaptainUid: myUid);
-        if (context.mounted) _snack(context, '${member.name} is now captain');
-      } catch (e) {
-        if (context.mounted) _snack(context, _cleanError(e));
-      }
-    } else if (action == 'remove') {
-      final ok = await AppDialog.confirm(
-        context,
-        title: 'Remove ${member.name}?',
-        message: 'They will be removed from the squad.',
-        confirmText: 'Remove',
-        isDanger: true,
-      );
-      if (ok != true || !context.mounted) return;
-      try {
-        await repo.removeMember(teamId: team.id, uid: member.uid);
-        if (context.mounted) _snack(context, '${member.name} removed');
-      } catch (e) {
-        if (context.mounted) _snack(context, _cleanError(e));
-      }
-    }
-  }
-
-  Future<void> _leave(BuildContext context, WidgetRef ref, String uid) async {
-    final ok = await AppDialog.confirm(
-      context,
-      title: 'Leave ${team.name}?',
-      message: "You'll need a new invite code to rejoin.",
-      confirmText: 'Leave',
-      isDanger: true,
-    );
-    if (ok != true || !context.mounted) return;
-    try {
-      await ref.read(teamRepositoryProvider).leaveTeam(teamId: team.id, uid: uid);
-      if (context.mounted) context.go(Routes.home);
-    } catch (e) {
-      if (context.mounted) _snack(context, _cleanError(e));
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -287,7 +200,7 @@ class _Body extends ConsumerWidget {
                   icon: const Icon(Icons.copy_rounded, color: _kTextSecondary, size: 20),
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: team.inviteCode));
-                    if (context.mounted) _snack(context, 'Invite code copied');
+                    if (context.mounted) showTeamSnack(context, 'Invite code copied');
                   },
                 ),
               ],
@@ -323,7 +236,9 @@ class _Body extends ConsumerWidget {
               child: PlayerTile(
                 member: m,
                 showMoreMenu: isCaptain,
-                onMoreTap: isCaptain ? () => _showMemberMenu(context, ref, m, uid!) : null,
+                onMoreTap: isCaptain
+                    ? () => showTeamMemberMenu(context, ref, team: team, member: m, myUid: uid!)
+                    : null,
               ),
             ))
                 .toList(),
@@ -364,7 +279,10 @@ class _Body extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () => _leave(context, ref, uid!),
+                onPressed: () async {
+                  final left = await confirmAndLeaveTeam(context, ref, team: team, uid: uid!);
+                  if (left && context.mounted) context.go(Routes.home);
+                },
                 icon: const Icon(Icons.logout, color: _kTextSecondary, size: 18),
                 label: const Text('Leave Team',
                     style: TextStyle(color: _kTextSecondary, fontWeight: FontWeight.w600)),

@@ -12,6 +12,20 @@ StreamProvider.family<List<Tournament>, TournamentStatus?>((ref, status) {
   return ref.watch(tournamentRepositoryProvider).watchTournaments(status: status);
 });
 
+/// Live tournaments first, then upcoming — feeds Home's "Live & Upcoming" row.
+/// Built on [tournamentsProvider] (same server-side status filter the
+/// Tournaments tab and leaderboard use) rather than a second Firestore query.
+final liveAndUpcomingTournamentsProvider = Provider<AsyncValue<List<Tournament>>>((ref) {
+  final live = ref.watch(tournamentsProvider(TournamentStatus.live));
+  final upcoming = ref.watch(tournamentsProvider(TournamentStatus.upcoming));
+
+  if (live.isLoading || upcoming.isLoading) return const AsyncLoading();
+  if (live.hasError) return AsyncError(live.error!, live.stackTrace!);
+  if (upcoming.hasError) return AsyncError(upcoming.error!, upcoming.stackTrace!);
+
+  return AsyncData([...?live.value, ...?upcoming.value].take(10).toList());
+});
+
 final tournamentDetailProvider = StreamProvider.family<Tournament?, String>((ref, id) {
   return ref.watch(tournamentRepositoryProvider).watchTournament(id);
 });

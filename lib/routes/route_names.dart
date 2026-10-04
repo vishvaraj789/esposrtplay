@@ -6,7 +6,14 @@ class Routes {
   static const otp = '/otp';
   static const completeProfile = '/complete-profile'; // NEW: first-time UserForm step
 
+  // ---- Bottom-nav tabs (branches of the StatefulShellRoute in app_router.dart) ----
   static const home = '/home';
+  static const teams = '/teams';
+  static const tournaments = '/tournaments';
+  static const profile = '/profile';
+
+  /// Paths that are bottom-nav tabs. Navigate to these with go(), never push().
+  static const tabRoutes = {home, teams, tournaments, profile};
 
   static const leaderboard = '/leaderboard';
 

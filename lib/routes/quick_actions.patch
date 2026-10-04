@@ -1,0 +1,88 @@
+--- a/lib/routes/route_names.dart
++++ b/lib/routes/route_names.dart
+@@ -12,6 +12,9 @@
+   static const tournaments = '/tournaments';
+   static const profile = '/profile';
+
++  /// Paths that are bottom-nav tabs. Navigate to these with go(), never push().
++  static const tabRoutes = {home, teams, tournaments, profile};
++
+   static const leaderboard = '/leaderboard';
+
+   static const wallet = '/wallet';
+--- a/lib/features/home/provider/home_provider.dart
++++ b/lib/features/home/provider/home_provider.dart
+@@ -2,6 +2,8 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+
++import '../../../routes/route_names.dart';
++
+ // --- Data models ---
+
+ class BannerItem {
+@@ -144,13 +146,13 @@
+
+ final quickActionsProvider = Provider<List<QuickAction>>((ref) {
+   return const [
+-    QuickAction(icon: Icons.emoji_events, color: Color(0xFFFFC24B), label: 'Tournaments'),
+-    QuickAction(icon: Icons.groups, color: Color(0xFF3DDC84), label: 'My Team'),
++    QuickAction(icon: Icons.emoji_events, color: Color(0xFFFFC24B), label: 'Tournaments', route: Routes.tournaments),
++    QuickAction(icon: Icons.groups, color: Color(0xFF3DDC84), label: 'My Team', route: Routes.teams),
+     QuickAction(icon: Icons.search, color: Color(0xFF3DA9FC), label: 'Find Players'),
+-    QuickAction(icon: Icons.account_balance_wallet, color: Color(0xFFFFC24B), label: 'Wallet'),
++    QuickAction(icon: Icons.account_balance_wallet, color: Color(0xFFFFC24B), label: 'Wallet', route: Routes.wallet),
+     QuickAction(icon: Icons.card_giftcard, color: Color(0xFFFF3D5A), label: 'Rewards'),
+-    QuickAction(icon: Icons.podcasts, color: Color(0xFFE23744), label: 'Live Match'),
+-    QuickAction(icon: Icons.history, color: Color(0xFF3DA9FC), label: 'History'),
++    QuickAction(icon: Icons.podcasts, color: Color(0xFFE23744), label: 'Live Match', route: Routes.matches),
++    QuickAction(icon: Icons.history, color: Color(0xFF3DA9FC), label: 'History', route: Routes.walletTransactions),
+     QuickAction(icon: Icons.headset_mic, color: Color(0xFF8B5CF6), label: 'Support'),
+   ];
+ });
+\ No newline at end of file
+--- a/lib/features/home/presentation/home_screen.dart
++++ b/lib/features/home/presentation/home_screen.dart
+@@ -66,7 +66,7 @@
+                 ),
+                 itemBuilder: (context, i) => QuickActionCard(
+                   action: quickActions[i],
+-                  onTap: () => _handleQuickAction(context, quickActions[i].label),
++                  onTap: () => _handleQuickAction(context, quickActions[i]),
+                 ),
+               ),
+               const SizedBox(height: 24),
+@@ -124,19 +124,20 @@
+     );
+   }
+
+-  void _handleQuickAction(BuildContext context, String label) {
+-    switch (label) {
+-      case 'Tournaments':
+-        context.go(Routes.tournaments); // tab switch -> go(), not push()
+-        break;
+-      case 'Wallet':
+-        context.push(Routes.wallet);
+-        break;
+-      case 'Live Match':
+-      // TODO: push live_match_screen.dart once wired.
+-        break;
+-      default:
+-        break;
++  void _handleQuickAction(BuildContext context, QuickAction action) {
++    final route = action.route;
++    if (route == null) {
++      // No screen exists for this yet — say so instead of a silent no-op.
++      ScaffoldMessenger.of(context)
++        ..hideCurrentSnackBar()
++        ..showSnackBar(SnackBar(content: Text('${action.label} is coming soon')));
++      return;
++    }
++    // Tabs switch branch (go); everything else stacks on top (push).
++    if (Routes.tabRoutes.contains(route)) {
++      context.go(route);
++    } else {
++      context.push(route);
+     }
+   }
+ }

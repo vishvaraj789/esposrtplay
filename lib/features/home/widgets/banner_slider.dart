@@ -15,7 +15,10 @@ const _kBrandGradient = LinearGradient(
 class BannerSlider extends StatefulWidget {
   final List<BannerItem> banners;
 
-  const BannerSlider({super.key, required this.banners});
+  /// Called when the JOIN NOW button on a banner is tapped.
+  final ValueChanged<BannerItem>? onJoin;
+
+  const BannerSlider({super.key, required this.banners, this.onJoin});
 
   @override
   State<BannerSlider> createState() => _BannerSliderState();
@@ -132,7 +135,7 @@ class _BannerSliderState extends State<BannerSlider> {
                     Container(
                       decoration: BoxDecoration(gradient: _kBrandGradient, borderRadius: BorderRadius.circular(10)),
                       child: TextButton(
-                        onPressed: banner.onJoin,
+                        onPressed: widget.onJoin == null ? null : () => widget.onJoin!(banner),
                         style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12)),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../routes/route_names.dart';
+
 // --- Data models ---
 
 class BannerItem {
@@ -12,7 +14,10 @@ class BannerItem {
   final String dateLabel;
   final String modeLabel;
   final String prize;
-  final VoidCallback? onJoin;
+
+  /// Optional: id of the tournament this banner promotes. When absent, JOIN NOW
+  /// opens the Tournaments tab instead.
+  final String? tournamentId;
 
   const BannerItem({
     required this.tag,
@@ -22,10 +27,11 @@ class BannerItem {
     required this.dateLabel,
     required this.modeLabel,
     required this.prize,
-    this.onJoin,
+    this.tournamentId,
   });
 
   factory BannerItem.fromFirestore(Map<String, dynamic> data) {
+    final tid = data['tournamentId'];
     return BannerItem(
       tag: data['tag'] ?? '',
       statusLabel: data['statusLabel'] ?? 'OPEN',
@@ -34,38 +40,7 @@ class BannerItem {
       dateLabel: data['dateLabel'] ?? '',
       modeLabel: data['modeLabel'] ?? '',
       prize: data['prize'] ?? '',
-    );
-  }
-}
-
-class TournamentItem {
-  final String id;
-  final String name;
-  final String badge;
-  final Color badgeColor;
-  final String time;
-  final String entry;
-  final String prize;
-
-  const TournamentItem({
-    required this.id,
-    required this.name,
-    required this.badge,
-    required this.badgeColor,
-    required this.time,
-    required this.entry,
-    required this.prize,
-  });
-
-  factory TournamentItem.fromFirestore(String id, Map<String, dynamic> data) {
-    return TournamentItem(
-      id: id,
-      name: data['name'] ?? '',
-      badge: data['badge'] ?? 'OPEN',
-      badgeColor: Color(data['badgeColor'] ?? 0xFF3DDC84),
-      time: data['time'] ?? '',
-      entry: data['entry'] ?? '',
-      prize: data['prize'] ?? '',
+      tournamentId: tid is String && tid.isNotEmpty ? tid : null,
     );
   }
 }
@@ -120,18 +95,6 @@ final bannersProvider = StreamProvider<List<BannerItem>>((ref) {
       .map((snap) => snap.docs.map((d) => BannerItem.fromFirestore(d.data())).toList());
 });
 
-final tournamentsProvider = StreamProvider<List<TournamentItem>>((ref) {
-  final firestore = ref.watch(_firestoreProvider);
-  return firestore
-      .collection('tournaments')
-      .orderBy('startTime')
-      .limit(10)
-      .snapshots()
-      .map((snap) => snap.docs
-      .map((d) => TournamentItem.fromFirestore(d.id, d.data()))
-      .toList());
-});
-
 final gamesProvider = StreamProvider<List<GameItem>>((ref) {
   final firestore = ref.watch(_firestoreProvider);
   return firestore
@@ -144,13 +107,13 @@ final gamesProvider = StreamProvider<List<GameItem>>((ref) {
 
 final quickActionsProvider = Provider<List<QuickAction>>((ref) {
   return const [
-    QuickAction(icon: Icons.emoji_events, color: Color(0xFFFFC24B), label: 'Tournaments'),
-    QuickAction(icon: Icons.groups, color: Color(0xFF3DDC84), label: 'My Team'),
+    QuickAction(icon: Icons.emoji_events, color: Color(0xFFFFC24B), label: 'Tournaments', route: Routes.tournaments),
+    QuickAction(icon: Icons.groups, color: Color(0xFF3DDC84), label: 'My Team', route: Routes.teams),
     QuickAction(icon: Icons.search, color: Color(0xFF3DA9FC), label: 'Find Players'),
-    QuickAction(icon: Icons.account_balance_wallet, color: Color(0xFFFFC24B), label: 'Wallet'),
+    QuickAction(icon: Icons.account_balance_wallet, color: Color(0xFFFFC24B), label: 'Wallet', route: Routes.wallet),
     QuickAction(icon: Icons.card_giftcard, color: Color(0xFFFF3D5A), label: 'Rewards'),
-    QuickAction(icon: Icons.podcasts, color: Color(0xFFE23744), label: 'Live Match'),
-    QuickAction(icon: Icons.history, color: Color(0xFF3DA9FC), label: 'History'),
+    QuickAction(icon: Icons.podcasts, color: Color(0xFFE23744), label: 'Live Match', route: Routes.matches),
+    QuickAction(icon: Icons.history, color: Color(0xFF3DA9FC), label: 'History', route: Routes.walletTransactions),
     QuickAction(icon: Icons.headset_mic, color: Color(0xFF8B5CF6), label: 'Support'),
   ];
 });
