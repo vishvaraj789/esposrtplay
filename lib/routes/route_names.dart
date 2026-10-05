@@ -57,6 +57,15 @@ class Routes {
   static const adminMatchManage = '/admin/matches/:id';
   static const adminAnnouncements = '/admin/announcements';
 
+  static const adminPlayers = '/admin/players';
+  static const adminPlayerDetails = '/admin/players/:id';
+  static String adminPlayerDetailsPath(String uid) => '/admin/players/${Uri.encodeComponent(uid)}';
+
+  static const adminTeams1 = '/admin/teams';
+  static const adminTeamDetails = '/admin/teams/:id';
+  static String adminTeamDetailsPath(String id) => '/admin/teams/${Uri.encodeComponent(id)}';
+
+
   // ---- Path builders (use these instead of string-concatenating ids) ----
   static String tournamentDetailsPath(String id) => '/tournaments/${Uri.encodeComponent(id)}';
   static String tournamentBracketPath(String id) => '/tournaments/${Uri.encodeComponent(id)}/bracket';

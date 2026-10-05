@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/constants/admin_config.dart';
+import '../features/admin/presentation/admin_teams_screen.dart';
 import '../features/admin/repository/admin_repository.dart';
 import 'route_names.dart';
 import 'placeholder_screen.dart';
@@ -41,7 +43,7 @@ import '../features/chat/presentation/team_chat_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
 import '../features/admin/presentation/admin_tournaments_screen.dart';
 import '../features/admin/presentation/admin_tournament_form_screen.dart';
-import '../features/admin/presentation/admin_teams_screen.dart';
+import '../features/admin/presentation/admin_team_details_screen.dart';
 import '../features/admin/presentation/admin_matches_screen.dart';
 import '../features/admin/presentation/admin_match_create_screen.dart';
 import '../features/admin/presentation/admin_match_manage_screen.dart';
@@ -59,7 +61,8 @@ import '../features/teams/presentation/team_details_screen.dart';
 import '../features/tournaments/presentation/create_tournament_screen.dart';
 import '../features/tournaments/presentation/bracket_screen.dart';
 
-import '../core/constants/admin_config.dart';
+import '../features/admin/presentation/admin_players_screen.dart';
+import '../features/admin/presentation/admin_player_details_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _AuthRefreshNotifier();
@@ -193,6 +196,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => AdminMatchManageScreen(matchId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.adminAnnouncements, builder: (_, __) => const AdminAnnouncementsScreen()),
+
+      GoRoute(path: Routes.adminPlayers, builder: (_, __) => const AdminPlayersScreen()),
+      GoRoute(
+        path: Routes.adminPlayerDetails,
+        builder: (_, state) => AdminPlayerDetailsScreen(uid: state.pathParameters['id']!),
+      ),
+
+      GoRoute(path: Routes.adminTeams, builder: (_, __) => const AdminTeamsScreen()),
+      GoRoute(
+        path: Routes.adminTeamDetails,
+        builder: (_, state) => AdminTeamDetailsScreen(teamId: state.pathParameters['id']!),
+      ),
     ],
   );
 });
@@ -214,19 +229,6 @@ Future<bool> _profileComplete(String uid) async {
     return result;
   } catch (e) {
     debugPrint('[profile] hasProfile($uid) threw: $e');
-    return false;
-  }
-}
-
-/// Checks the signed-in user's role for admin-only routes. Fails closed
-/// (denies access) on any error rather than hanging or leaking admin UI.
-Future<bool> _isAdmin(String uid) async {
-  try {
-    final result = await AdminRepository().watchIsAdmin(uid).first.timeout(const Duration(seconds: 8));
-    debugPrint('[admin] isAdmin($uid) = $result');
-    return result;
-  } catch (e) {
-    debugPrint('[admin] isAdmin($uid) threw: $e');
     return false;
   }
 }

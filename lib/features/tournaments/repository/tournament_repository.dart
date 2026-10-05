@@ -20,8 +20,12 @@ class TournamentRepository {
     if (status != null) {
       query = query.where('status', isEqualTo: status.name);
     }
+    // Drafts are admin-only: hide them from every player-facing list.
     return query.snapshots().map(
-          (snap) => snap.docs.map((d) => Tournament.fromFirestore(d.id, d.data())).toList(),
+          (snap) => snap.docs
+          .map((d) => Tournament.fromFirestore(d.id, d.data()))
+          .where((t) => t.isPublished)
+          .toList(),
     );
   }
 
@@ -62,6 +66,13 @@ class TournamentRepository {
       final current = data['currentParticipants'] ?? 0;
       final max = data['maxParticipants'] ?? 0;
       if (current >= max) throw Exception('Tournament is full');
+
+      if (data['isPublished'] == false) throw Exception('This tournament is not open yet');
+      final now = DateTime.now();
+      final regStart = (data['registrationStart'] as Timestamp?)?.toDate();
+      final regEnd = (data['registrationEnd'] as Timestamp?)?.toDate();
+      if (regStart != null && now.isBefore(regStart)) throw Exception('Registration has not started yet');
+      if (regEnd != null && now.isAfter(regEnd)) throw Exception('Registration is closed');
 
       final regRef = tournamentRef.collection('registrations').doc(teamId);
       final existing = await txn.get(regRef);

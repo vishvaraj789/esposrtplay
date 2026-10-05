@@ -8,46 +8,90 @@ class AdminRepository {
 
   AdminRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Checks the signed-in user's `role` field on users/{uid}.
-  Stream<bool> watchIsAdmin(String uid) {
-    return _firestore.collection('users').doc(uid).snapshots().map(
-          (doc) => doc.data()?['role'] == 'admin',
+  /// Dashboard counters. Uses server-side count() queries so no collection
+  /// is downloaded; all run in parallel.
+  Future<AdminStats> fetchDashboardStats() async {
+    final tournaments = _firestore.collection('tournaments');
+
+    final results = await Future.wait([
+      _firestore.collection('users').count().get(),
+      _firestore.collection('teams').count().get(),
+      tournaments.count().get(),
+      tournaments.where('status', isEqualTo: 'live').count().get(),
+      tournaments.where('status', isEqualTo: 'upcoming').count().get(),
+      tournaments.where('status', isEqualTo: 'completed').count().get(),
+    ]);
+
+    int c(int i) => results[i].count ?? 0;
+
+    return AdminStats(
+      totalPlayers: c(0),
+      totalTeams: c(1),
+      totalTournaments: c(2),
+      liveTournaments: c(3),
+      upcomingTournaments: c(4),
+      completedTournaments: c(5),
     );
   }
 
-  /// One-shot aggregation for the dashboard header. Runs a handful of
-  /// count/sum queries in parallel rather than downloading full collections.
-  Future<AdminStats> fetchDashboardStats() async {
-    final startOfDay = DateTime.now().copyWith(hour: 0, minute: 0, second: 0, millisecond: 0);
+  /// Newest players, teams and tournaments merged into one timeline.
+  /// Documents without a `createdAt` timestamp are skipped.
+  Future<List<AdminActivity>> fetchRecentActivity({int limit = 8}) async {
+    Future<QuerySnapshot<Map<String, dynamic>>> latest(String collection) => _firestore
+        .collection(collection)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
 
-    final results = await Future.wait([
-      _firestore.collection('tournaments').count().get(),
-      _firestore.collection('teams').count().get(),
-      _firestore
-          .collection('matches')
-          .where('scheduledAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('scheduledAt', isLessThan: Timestamp.fromDate(startOfDay.add(const Duration(days: 1))))
-          .count()
-          .get(),
-      _firestore.collection('tournaments').get(),
+    final snaps = await Future.wait([
+      latest('users'),
+      latest('teams'),
+      latest('tournaments'),
     ]);
 
-    final tournamentCount = (results[0] as AggregateQuerySnapshot).count ?? 0;
-    final teamCount = (results[1] as AggregateQuerySnapshot).count ?? 0;
-    final matchesTodayCount = (results[2] as AggregateQuerySnapshot).count ?? 0;
-    final tournamentDocs = (results[3] as QuerySnapshot<Map<String, dynamic>>).docs;
+    DateTime? time(Map<String, dynamic> data) {
+      final v = data['createdAt'];
+      return v is Timestamp ? v.toDate() : null;
+    }
 
-    final prizePool = tournamentDocs.fold<double>(
-      0,
-          (sum, doc) => sum + ((doc.data()['prizePool'] ?? 0) as num).toDouble(),
-    );
+    final items = <AdminActivity>[];
 
-    return AdminStats(
-      totalTournaments: tournamentCount,
-      totalTeams: teamCount,
-      matchesToday: matchesTodayCount,
-      totalPrizePool: prizePool,
-    );
+    for (final doc in snaps[0].docs) {
+      final data = doc.data();
+      final t = time(data);
+      if (t == null) continue;
+      items.add(AdminActivity(
+        type: AdminActivityType.player,
+        title: 'New player registered',
+        subtitle: (data['nickname'] ?? 'Unknown player').toString(),
+        time: t,
+      ));
+    }
+    for (final doc in snaps[1].docs) {
+      final data = doc.data();
+      final t = time(data);
+      if (t == null) continue;
+      items.add(AdminActivity(
+        type: AdminActivityType.team,
+        title: 'Team created',
+        subtitle: (data['name'] ?? 'Unnamed team').toString(),
+        time: t,
+      ));
+    }
+    for (final doc in snaps[2].docs) {
+      final data = doc.data();
+      final t = time(data);
+      if (t == null) continue;
+      items.add(AdminActivity(
+        type: AdminActivityType.tournament,
+        title: 'Tournament created',
+        subtitle: (data['name'] ?? 'Unnamed tournament').toString(),
+        time: t,
+      ));
+    }
+
+    items.sort((a, b) => b.time.compareTo(a.time));
+    return items.take(limit).toList();
   }
 
   // --- Announcements ---

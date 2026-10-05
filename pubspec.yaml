@@ -33,7 +33,7 @@ dependencies:
 
   # UI & Icons
   cupertino_icons: ^1.0.8
-  image_picker: ^1.1.2
+  image_picker: ^1.2.3
   google_fonts: ^6.2.1
   flutter_riverpod: ^3.0.3
   go_router: ^16.2.1
@@ -45,6 +45,7 @@ dependencies:
   # Social Login
   google_sign_in: ^7.2.0
   flutter_facebook_auth: ^7.2.0
+  firebase_storage: ^13.6.0
 
 dev_dependencies:
   flutter_test:

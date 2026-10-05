@@ -1,20 +1,43 @@
 class AdminStats {
-  final int totalTournaments;
+  final int totalPlayers;
   final int totalTeams;
-  final int matchesToday;
-  final double totalPrizePool;
+  final int totalTournaments;
+  final int liveTournaments;
+  final int upcomingTournaments;
+  final int completedTournaments;
 
   const AdminStats({
-    required this.totalTournaments,
+    required this.totalPlayers,
     required this.totalTeams,
-    required this.matchesToday,
-    required this.totalPrizePool,
+    required this.totalTournaments,
+    required this.liveTournaments,
+    required this.upcomingTournaments,
+    required this.completedTournaments,
   });
 
   factory AdminStats.empty() => const AdminStats(
-    totalTournaments: 0,
+    totalPlayers: 0,
     totalTeams: 0,
-    matchesToday: 0,
-    totalPrizePool: 0,
+    totalTournaments: 0,
+    liveTournaments: 0,
+    upcomingTournaments: 0,
+    completedTournaments: 0,
   );
+}
+
+enum AdminActivityType { player, team, tournament }
+
+/// One row in the dashboard's "Recent Activity" list.
+class AdminActivity {
+  final AdminActivityType type;
+  final String title;
+  final String subtitle;
+  final DateTime time;
+
+  const AdminActivity({
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    required this.time,
+  });
 }

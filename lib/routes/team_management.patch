@@ -1,0 +1,979 @@
+diff -ruN orig/lib/features/admin/models/team_admin_model.dart eposrtplay/lib/features/admin/models/team_admin_model.dart
+--- orig/lib/features/admin/models/team_admin_model.dart	1970-01-01 00:00:00.000000000 +0000
++++ eposrtplay/lib/features/admin/models/team_admin_model.dart	2026-10-05 15:04:54.742271622 +0000
+@@ -0,0 +1,78 @@
++import 'package:cloud_firestore/cloud_firestore.dart';
++
++enum TeamStatus { active, suspended }
++
++TeamStatus _statusFromString(String? s) =>
++    TeamStatus.values.firstWhere((e) => e.name == s, orElse: () => TeamStatus.active);
++
++/// A team as the admin panel sees it. `verified` and `status` are admin-only
++/// fields; older team documents without them count as unverified + active.
++class AdminTeam {
++  final String id;
++  final String name;
++  final String tag;
++  final String? logoUrl;
++  final String captainUid;
++  final List<String> memberUids;
++  final int maxMembers;
++  final bool verified;
++  final TeamStatus status;
++  final DateTime createdAt;
++
++  const AdminTeam({
++    required this.id,
++    required this.name,
++    required this.tag,
++    this.logoUrl,
++    required this.captainUid,
++    required this.memberUids,
++    this.maxMembers = 4,
++    this.verified = false,
++    this.status = TeamStatus.active,
++    required this.createdAt,
++  });
++
++  bool get isSuspended => status == TeamStatus.suspended;
++
++  factory AdminTeam.fromFirestore(String id, Map<String, dynamic> data) {
++    return AdminTeam(
++      id: id,
++      name: data['name'] ?? '',
++      tag: data['tag'] ?? '',
++      logoUrl: data['logoUrl'],
++      captainUid: data['captainUid'] ?? '',
++      memberUids: List<String>.from(data['memberUids'] ?? const []),
++      maxMembers: data['maxMembers'] ?? 4,
++      verified: data['verified'] ?? false,
++      status: _statusFromString(data['status']),
++      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0),
++    );
++  }
++}
++
++/// One row of teams/{id}/members/{uid}.
++class AdminTeamMember {
++  final String uid;
++  final String name;
++  final String role;
++  final bool isCaptain;
++  final DateTime joinedAt;
++
++  const AdminTeamMember({
++    required this.uid,
++    required this.name,
++    required this.role,
++    required this.isCaptain,
++    required this.joinedAt,
++  });
++
++  factory AdminTeamMember.fromFirestore(String uid, Map<String, dynamic> data) {
++    return AdminTeamMember(
++      uid: uid,
++      name: data['name'] ?? 'Unknown',
++      role: data['role'] ?? 'Player',
++      isCaptain: data['isCaptain'] ?? false,
++      joinedAt: (data['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
++    );
++  }
++}
+diff -ruN orig/lib/features/admin/presentation/admin_team_details_screen.dart eposrtplay/lib/features/admin/presentation/admin_team_details_screen.dart
+--- orig/lib/features/admin/presentation/admin_team_details_screen.dart	1970-01-01 00:00:00.000000000 +0000
++++ eposrtplay/lib/features/admin/presentation/admin_team_details_screen.dart	2026-10-05 15:04:54.754228562 +0000
+@@ -0,0 +1,280 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++
++import '../../../core/theme/app_colors.dart';
++import '../../../core/widgets/app_button.dart';
++import '../models/team_admin_model.dart';
++import '../provider/team_admin_provider.dart';
++
++class AdminTeamDetailsScreen extends ConsumerWidget {
++  final String teamId;
++
++  const AdminTeamDetailsScreen({super.key, required this.teamId});
++
++  Future<void> _confirmAndRun(
++      BuildContext context, {
++        required String title,
++        required String message,
++        required Future<bool> Function() action,
++        bool isDanger = false,
++      }) async {
++    final confirmed = await showDialog<bool>(
++      context: context,
++      builder: (ctx) => AlertDialog(
++        backgroundColor: AppColors.card,
++        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
++        title: Text(title, style: const TextStyle(color: Colors.white)),
++        content: Text(message, style: TextStyle(color: AppColors.textSecondary)),
++        actions: [
++          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
++          FilledButton(
++            onPressed: () => Navigator.pop(ctx, true),
++            style: FilledButton.styleFrom(backgroundColor: isDanger ? AppColors.danger : AppColors.primary),
++            child: const Text('Confirm'),
++          ),
++        ],
++      ),
++    );
++    if (confirmed != true) return;
++
++    final messenger = ScaffoldMessenger.of(context);
++    final ok = await action();
++    if (!ok) messenger.showSnackBar(const SnackBar(content: Text('Action failed')));
++  }
++
++  String _date(DateTime d) => '${d.day}/${d.month}/${d.year}';
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final teamAsync = ref.watch(teamDetailProvider(teamId));
++    final membersAsync = ref.watch(teamMembersAdminProvider(teamId));
++    final countAsync = ref.watch(teamTournamentCountProvider(teamId));
++    final actions = ref.read(teamAdminActionsControllerProvider.notifier);
++    final busy = ref.watch(teamAdminActionsControllerProvider).isLoading;
++
++    return Scaffold(
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(backgroundColor: AppColors.backgroundDark, elevation: 0, title: const Text('Team Details')),
++      body: teamAsync.when(
++        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.secondary)),
++        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white))),
++        data: (team) {
++          if (team == null) {
++            return const Center(child: Text('Team not found', style: TextStyle(color: Colors.white)));
++          }
++
++          final members = membersAsync.value ?? const <AdminTeamMember>[];
++          final captain = members.where((m) => m.isCaptain).firstOrNull;
++
++          return ListView(
++            padding: const EdgeInsets.all(16),
++            children: [
++              // ---- Header: logo, name, status ----
++              Center(
++                child: Column(
++                  children: [
++                    CircleAvatar(
++                      radius: 44,
++                      backgroundColor: AppColors.hairline,
++                      backgroundImage:
++                      team.logoUrl != null && team.logoUrl!.isNotEmpty ? NetworkImage(team.logoUrl!) : null,
++                      child: team.logoUrl == null || team.logoUrl!.isEmpty
++                          ? const Icon(Icons.shield, color: Colors.white54, size: 36)
++                          : null,
++                    ),
++                    const SizedBox(height: 10),
++                    Row(
++                      mainAxisSize: MainAxisSize.min,
++                      children: [
++                        Text(team.name,
++                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
++                        if (team.verified) ...[
++                          const SizedBox(width: 6),
++                          const Icon(Icons.verified, color: AppColors.secondary, size: 18),
++                        ],
++                      ],
++                    ),
++                    Text(
++                      team.isSuspended ? 'SUSPENDED' : 'Active',
++                      style: TextStyle(
++                        color: team.isSuspended ? AppColors.danger : AppColors.green,
++                        fontWeight: FontWeight.w700,
++                        fontSize: 12,
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              const SizedBox(height: 24),
++
++              // ---- Details ----
++              _card([
++                _row('Team name', team.name),
++                _row('Tag', team.tag.isEmpty ? '—' : team.tag),
++                _row('Captain', captain?.name ?? (team.captainUid.isEmpty ? '—' : team.captainUid)),
++                _row('Members', '${team.memberUids.length}/${team.maxMembers}'),
++                _row('Created', team.createdAt.millisecondsSinceEpoch == 0 ? '—' : _date(team.createdAt)),
++                _row('Tournaments', countAsync.when(
++                  data: (n) => '$n',
++                  loading: () => '…',
++                  error: (_, __) => '—',
++                )),
++                _row('Verified', team.verified ? 'Yes' : 'No'),
++                _row('Status', team.isSuspended ? 'Suspended' : 'Active'),
++              ]),
++              const SizedBox(height: 24),
++
++              // ---- Members ----
++              const Text('Members', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
++              const SizedBox(height: 10),
++              membersAsync.when(
++                loading: () => const Padding(
++                  padding: EdgeInsets.symmetric(vertical: 12),
++                  child: Center(child: CircularProgressIndicator(color: AppColors.secondary)),
++                ),
++                error: (e, _) => Text('Could not load members: $e', style: const TextStyle(color: Colors.redAccent)),
++                data: (list) {
++                  if (list.isEmpty) {
++                    return Text('No members', style: TextStyle(color: AppColors.textSecondary));
++                  }
++                  return Column(
++                    children: list
++                        .map((m) => _MemberTile(
++                      member: m,
++                      onRemove: m.isCaptain || busy
++                          ? null
++                          : () => _confirmAndRun(
++                        context,
++                        isDanger: true,
++                        title: 'Remove member',
++                        message: 'Remove ${m.name} from ${team.name}? They will have to rejoin with the invite code.',
++                        action: () => actions.removeMember(teamId, m.uid),
++                      ),
++                    ))
++                        .toList(),
++                  );
++                },
++              ),
++              const SizedBox(height: 24),
++
++              // ---- Admin actions ----
++              const Text('Admin Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
++              const SizedBox(height: 12),
++              AppButton(
++                text: team.verified ? 'Remove Verification' : 'Verify Team',
++                icon: Icons.verified_outlined,
++                variant: AppButtonVariant.outline,
++                isLoading: busy,
++                onPressed: () => _confirmAndRun(
++                  context,
++                  title: team.verified ? 'Remove Verification' : 'Verify Team',
++                  message: team.verified
++                      ? 'Remove the verified badge from ${team.name}?'
++                      : 'Mark ${team.name} as verified?',
++                  action: () => team.verified ? actions.unverify(teamId) : actions.verify(teamId),
++                ),
++              ),
++              const SizedBox(height: 10),
++              AppButton(
++                text: team.isSuspended ? 'Activate Team' : 'Suspend Team',
++                icon: team.isSuspended ? Icons.check_circle_outline : Icons.block,
++                variant: team.isSuspended ? AppButtonVariant.primary : AppButtonVariant.danger,
++                isLoading: busy,
++                onPressed: () => _confirmAndRun(
++                  context,
++                  isDanger: !team.isSuspended,
++                  title: team.isSuspended ? 'Activate Team' : 'Suspend Team',
++                  message: team.isSuspended
++                      ? 'Restore ${team.name}? It can register for tournaments again.'
++                      : '${team.name} will be blocked from registering for tournaments. Continue?',
++                  action: () => team.isSuspended ? actions.activate(teamId) : actions.suspend(teamId),
++                ),
++              ),
++            ],
++          );
++        },
++      ),
++    );
++  }
++
++  Widget _card(List<Widget> children) => Container(
++    decoration: BoxDecoration(
++      color: AppColors.card,
++      borderRadius: BorderRadius.circular(14),
++      border: Border.all(color: AppColors.hairline),
++    ),
++    padding: const EdgeInsets.all(14),
++    child: Column(children: children),
++  );
++
++  Widget _row(String label, String value) => Padding(
++    padding: const EdgeInsets.symmetric(vertical: 6),
++    child: Row(
++      children: [
++        Expanded(child: Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 13))),
++        Expanded(
++          child: Text(
++            value,
++            textAlign: TextAlign.right,
++            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
++          ),
++        ),
++      ],
++    ),
++  );
++}
++
++class _MemberTile extends StatelessWidget {
++  final AdminTeamMember member;
++  final VoidCallback? onRemove;
++
++  const _MemberTile({required this.member, this.onRemove});
++
++  @override
++  Widget build(BuildContext context) {
++    return Container(
++      margin: const EdgeInsets.only(bottom: 8),
++      decoration: BoxDecoration(
++        color: AppColors.card,
++        borderRadius: BorderRadius.circular(12),
++        border: Border.all(color: AppColors.hairline),
++      ),
++      child: ListTile(
++        leading: CircleAvatar(
++          backgroundColor: AppColors.hairline,
++          child: Text(
++            member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
++            style: const TextStyle(color: Colors.white),
++          ),
++        ),
++        title: Row(
++          children: [
++            Flexible(
++              child: Text(member.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
++            ),
++            if (member.isCaptain) ...[
++              const SizedBox(width: 6),
++              Container(
++                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
++                decoration: BoxDecoration(
++                  color: AppColors.gold.withValues(alpha: 0.16),
++                  borderRadius: BorderRadius.circular(6),
++                ),
++                child: const Text('CAPTAIN',
++                    style: TextStyle(color: AppColors.gold, fontSize: 9.5, fontWeight: FontWeight.w800)),
++              ),
++            ],
++          ],
++        ),
++        subtitle: Text(member.role, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
++        trailing: member.isCaptain
++            ? null
++            : IconButton(
++          tooltip: 'Remove member',
++          icon: const Icon(Icons.person_remove_outlined, color: Colors.redAccent, size: 20),
++          onPressed: onRemove,
++        ),
++      ),
++    );
++  }
++}
+diff -ruN orig/lib/features/admin/presentation/admin_teams_screen.dart eposrtplay/lib/features/admin/presentation/admin_teams_screen.dart
+--- orig/lib/features/admin/presentation/admin_teams_screen.dart	2026-10-05 15:04:54.708505003 +0000
++++ eposrtplay/lib/features/admin/presentation/admin_teams_screen.dart	2026-10-05 15:04:54.752142375 +0000
+@@ -1,34 +1,85 @@
+-import 'package:flutter/material.dart';
+-import 'package:flutter_riverpod/flutter_riverpod.dart';
+-
+-import '../../../core/theme/app_colors.dart';
+-import '../provider/team_admin_provider.dart';
+-import '../repository/team_admin_repository.dart';
+-import '../widgets/team_request_card.dart';
+-
+-class AdminTeamsScreen extends ConsumerWidget {
+-  const AdminTeamsScreen({super.key});
+-  @override
+-  Widget build(BuildContext context, WidgetRef ref) {
+-    final teams = ref.watch(allTeamsAdminProvider);
+-    return Scaffold(backgroundColor: AppColors.backgroundDark, appBar: AppBar(backgroundColor: AppColors.backgroundDark, title: const Text('Team Approvals')), body: teams.when(
+-      loading: () => const Center(child: CircularProgressIndicator()),
+-      error: (error, _) => Center(child: Text('Could not load teams: $error', style: const TextStyle(color: Colors.redAccent))),
+-      data: (items) {
+-        final pending = items.where((team) => team.status == TeamApprovalStatus.pending).toList();
+-        return ListView(padding: const EdgeInsets.all(16), children: [
+-          Text('${pending.length} pending approval${pending.length == 1 ? '' : 's'}', style: const TextStyle(color: Colors.white70)), const SizedBox(height: 12),
+-          if (pending.isEmpty) const _NoPending(),
+-          ...pending.map((team) => TeamRequestCard(request: team, onApprove: () => _act(context, ref, team.teamId, true), onReject: () => _act(context, ref, team.teamId, false))),
+-          if (items.length > pending.length) ...[const SizedBox(height: 18), const Text('Reviewed teams', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), const SizedBox(height: 8), ...items.where((team) => team.status != TeamApprovalStatus.pending).map(_ReviewTile.new)],
+-        ]);
+-      },
+-    ));
+-  }
+-  Future<void> _act(BuildContext context, WidgetRef ref, String id, bool approve) async {
+-    final ok = approve ? await ref.read(teamAdminActionsControllerProvider.notifier).approve(id) : await ref.read(teamAdminActionsControllerProvider.notifier).reject(id);
+-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? (approve ? 'Team approved' : 'Team rejected') : 'Could not update team')));
+-  }
+-}
+-class _NoPending extends StatelessWidget { const _NoPending(); @override Widget build(BuildContext context) => const Padding(padding: EdgeInsets.symmetric(vertical: 28), child: Center(child: Text('No teams are awaiting approval', style: TextStyle(color: Colors.white54)))); }
+-class _ReviewTile extends StatelessWidget { final TeamApprovalRequest team; const _ReviewTile(this.team); @override Widget build(BuildContext context) { final approved = team.status == TeamApprovalStatus.approved; return Container(margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: const Color(0xFF171821), borderRadius: BorderRadius.circular(12)), child: ListTile(leading: Icon(approved ? Icons.check_circle : Icons.cancel, color: approved ? Colors.greenAccent : Colors.redAccent), title: Text(team.name, style: const TextStyle(color: Colors.white)), subtitle: Text(team.tag, style: const TextStyle(color: Colors.white54)), trailing: Text(approved ? 'Approved' : 'Rejected', style: TextStyle(color: approved ? Colors.greenAccent : Colors.redAccent, fontSize: 12)))); }}
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:go_router/go_router.dart';
++
++import '../../../core/theme/app_colors.dart';
++import '../../../routes/route_names.dart';
++import '../provider/team_admin_provider.dart';
++import '../widgets/team_list_tile.dart';
++
++class AdminTeamsScreen extends ConsumerWidget {
++  const AdminTeamsScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final teamsAsync = ref.watch(filteredTeamsProvider);
++    final filter = ref.watch(teamFilterProvider);
++
++    return Scaffold(
++      backgroundColor: AppColors.backgroundDark,
++      appBar: AppBar(backgroundColor: AppColors.backgroundDark, elevation: 0, title: const Text('Teams')),
++      body: Column(
++        children: [
++          Padding(
++            padding: const EdgeInsets.all(16),
++            child: TextField(
++              style: const TextStyle(color: Colors.white),
++              decoration: InputDecoration(
++                hintText: 'Search by team name or tag',
++                hintStyle: TextStyle(color: AppColors.textSecondary),
++                prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
++                filled: true,
++                fillColor: AppColors.card,
++                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
++              ),
++              onChanged: (v) => ref.read(teamSearchProvider.notifier).setQuery(v),
++            ),
++          ),
++          SizedBox(
++            height: 40,
++            child: ListView(
++              scrollDirection: Axis.horizontal,
++              padding: const EdgeInsets.symmetric(horizontal: 16),
++              children: TeamFilter.values.map((f) {
++                final selected = filter == f;
++                return Padding(
++                  padding: const EdgeInsets.only(right: 8),
++                  child: ChoiceChip(
++                    label: Text(f.name[0].toUpperCase() + f.name.substring(1)),
++                    selected: selected,
++                    onSelected: (_) => ref.read(teamFilterProvider.notifier).setFilter(f),
++                    selectedColor: AppColors.primary,
++                    backgroundColor: AppColors.card,
++                    labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontSize: 12.5),
++                  ),
++                );
++              }).toList(),
++            ),
++          ),
++          const SizedBox(height: 8),
++          Expanded(
++            child: teamsAsync.when(
++              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.secondary)),
++              error: (e, _) => Center(
++                child: Text('Could not load teams: $e', style: const TextStyle(color: Colors.redAccent)),
++              ),
++              data: (teams) {
++                if (teams.isEmpty) {
++                  return Center(child: Text('No teams found', style: TextStyle(color: AppColors.textSecondary)));
++                }
++                return ListView.builder(
++                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
++                  itemCount: teams.length,
++                  itemBuilder: (context, i) => TeamListTile(
++                    team: teams[i],
++                    onTap: () => context.push(Routes.adminTeamDetailsPath(teams[i].id)),
++                  ),
++                );
++              },
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff -ruN orig/lib/features/admin/provider/team_admin_provider.dart eposrtplay/lib/features/admin/provider/team_admin_provider.dart
+--- orig/lib/features/admin/provider/team_admin_provider.dart	2026-10-05 15:04:54.708592093 +0000
++++ eposrtplay/lib/features/admin/provider/team_admin_provider.dart	2026-10-05 15:04:54.747564527 +0000
+@@ -1,45 +1,95 @@
+-import 'package:flutter_riverpod/flutter_riverpod.dart';
+-
+-import '../repository/team_admin_repository.dart';
+-
+-final teamAdminRepositoryProvider = Provider<TeamAdminRepository>((ref) => TeamAdminRepository());
+-
+-final pendingTeamsProvider = StreamProvider<List<TeamApprovalRequest>>((ref) {
+-  return ref.watch(teamAdminRepositoryProvider).watchPendingTeams();
+-});
+-
+-final allTeamsAdminProvider = StreamProvider<List<TeamApprovalRequest>>((ref) {
+-  return ref.watch(teamAdminRepositoryProvider).watchAllTeams();
+-});
+-
+-class TeamAdminActionsController extends Notifier<AsyncValue<void>> {
+-  @override
+-  AsyncValue<void> build() => const AsyncData(null);
+-
+-  Future<bool> approve(String teamId) async {
+-    state = const AsyncLoading();
+-    try {
+-      await ref.read(teamAdminRepositoryProvider).approveTeam(teamId);
+-      state = const AsyncData(null);
+-      return true;
+-    } catch (e, st) {
+-      state = AsyncError(e, st);
+-      return false;
+-    }
+-  }
+-
+-  Future<bool> reject(String teamId) async {
+-    state = const AsyncLoading();
+-    try {
+-      await ref.read(teamAdminRepositoryProvider).rejectTeam(teamId);
+-      state = const AsyncData(null);
+-      return true;
+-    } catch (e, st) {
+-      state = AsyncError(e, st);
+-      return false;
+-    }
+-  }
+-}
+-
+-final teamAdminActionsControllerProvider =
+-NotifierProvider<TeamAdminActionsController, AsyncValue<void>>(TeamAdminActionsController.new);
+\ No newline at end of file
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++
++import '../models/team_admin_model.dart';
++import '../repository/team_admin_repository.dart';
++
++final teamAdminRepositoryProvider = Provider<TeamAdminRepository>((ref) => TeamAdminRepository());
++
++final allTeamsAdminProvider = StreamProvider<List<AdminTeam>>((ref) {
++  return ref.watch(teamAdminRepositoryProvider).watchAllTeams();
++});
++
++final teamDetailProvider = StreamProvider.family<AdminTeam?, String>((ref, teamId) {
++  return ref.watch(teamAdminRepositoryProvider).watchTeam(teamId);
++});
++
++final teamMembersAdminProvider = StreamProvider.family<List<AdminTeamMember>, String>((ref, teamId) {
++  return ref.watch(teamAdminRepositoryProvider).watchMembers(teamId);
++});
++
++final teamTournamentCountProvider = FutureProvider.autoDispose.family<int, String>((ref, teamId) {
++  return ref.watch(teamAdminRepositoryProvider).fetchTournamentCount(teamId);
++});
++
++// --- Search / filter (local UI state) ---
++
++class TeamSearchState extends Notifier<String> {
++  @override
++  String build() => '';
++  void setQuery(String query) => state = query;
++}
++
++final teamSearchProvider = NotifierProvider<TeamSearchState, String>(TeamSearchState.new);
++
++enum TeamFilter { all, active, suspended, verified, unverified }
++
++class TeamFilterState extends Notifier<TeamFilter> {
++  @override
++  TeamFilter build() => TeamFilter.all;
++  void setFilter(TeamFilter filter) => state = filter;
++}
++
++final teamFilterProvider = NotifierProvider<TeamFilterState, TeamFilter>(TeamFilterState.new);
++
++final filteredTeamsProvider = Provider<AsyncValue<List<AdminTeam>>>((ref) {
++  final teamsAsync = ref.watch(allTeamsAdminProvider);
++  final query = ref.watch(teamSearchProvider).toLowerCase().trim();
++  final filter = ref.watch(teamFilterProvider);
++
++  return teamsAsync.whenData((teams) {
++    return teams.where((t) {
++      final matchesQuery =
++          query.isEmpty || t.name.toLowerCase().contains(query) || t.tag.toLowerCase().contains(query);
++
++      final matchesFilter = switch (filter) {
++        TeamFilter.all => true,
++        TeamFilter.active => !t.isSuspended,
++        TeamFilter.suspended => t.isSuspended,
++        TeamFilter.verified => t.verified,
++        TeamFilter.unverified => !t.verified,
++      };
++
++      return matchesQuery && matchesFilter;
++    }).toList();
++  });
++});
++
++// --- Actions ---
++
++class TeamAdminActionsController extends Notifier<AsyncValue<void>> {
++  @override
++  AsyncValue<void> build() => const AsyncData(null);
++
++  TeamAdminRepository get _repo => ref.read(teamAdminRepositoryProvider);
++
++  Future<bool> verify(String teamId) => _run(() => _repo.setVerified(teamId, true));
++  Future<bool> unverify(String teamId) => _run(() => _repo.setVerified(teamId, false));
++  Future<bool> suspend(String teamId) => _run(() => _repo.setStatus(teamId, TeamStatus.suspended));
++  Future<bool> activate(String teamId) => _run(() => _repo.setStatus(teamId, TeamStatus.active));
++  Future<bool> removeMember(String teamId, String uid) => _run(() => _repo.removeMember(teamId: teamId, uid: uid));
++
++  Future<bool> _run(Future<void> Function() action) async {
++    state = const AsyncLoading();
++    try {
++      await action();
++      state = const AsyncData(null);
++      return true;
++    } catch (e, st) {
++      state = AsyncError(e, st);
++      return false;
++    }
++  }
++}
++
++final teamAdminActionsControllerProvider =
++NotifierProvider<TeamAdminActionsController, AsyncValue<void>>(TeamAdminActionsController.new);
+diff -ruN orig/lib/features/admin/repository/team_admin_repository.dart eposrtplay/lib/features/admin/repository/team_admin_repository.dart
+--- orig/lib/features/admin/repository/team_admin_repository.dart	2026-10-05 15:04:54.708661276 +0000
++++ eposrtplay/lib/features/admin/repository/team_admin_repository.dart	2026-10-05 15:04:54.744628030 +0000
+@@ -1,67 +1,66 @@
+-import 'package:cloud_firestore/cloud_firestore.dart';
+-
+-enum TeamApprovalStatus { pending, approved, rejected }
+-
+-TeamApprovalStatus _approvalFromString(String s) =>
+-    TeamApprovalStatus.values.firstWhere((e) => e.name == s, orElse: () => TeamApprovalStatus.pending);
+-
+-class TeamApprovalRequest {
+-  final String teamId;
+-  final String name;
+-  final String tag;
+-  final String? logoUrl;
+-  final String captainUid;
+-  final TeamApprovalStatus status;
+-  final DateTime createdAt;
+-
+-  const TeamApprovalRequest({
+-    required this.teamId,
+-    required this.name,
+-    required this.tag,
+-    this.logoUrl,
+-    required this.captainUid,
+-    required this.status,
+-    required this.createdAt,
+-  });
+-
+-  factory TeamApprovalRequest.fromFirestore(String id, Map<String, dynamic> data) {
+-    return TeamApprovalRequest(
+-      teamId: id,
+-      name: data['name'] ?? '',
+-      tag: data['tag'] ?? '',
+-      logoUrl: data['logoUrl'],
+-      captainUid: data['captainUid'] ?? '',
+-      status: _approvalFromString(data['approvalStatus'] ?? 'pending'),
+-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+-    );
+-  }
+-}
+-
+-class TeamAdminRepository {
+-  final FirebaseFirestore _firestore;
+-
+-  TeamAdminRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+-
+-  CollectionReference<Map<String, dynamic>> get _teams => _firestore.collection('teams');
+-
+-  Stream<List<TeamApprovalRequest>> watchPendingTeams() {
+-    return _teams
+-        .where('approvalStatus', isEqualTo: TeamApprovalStatus.pending.name)
+-        .snapshots()
+-        .map((snap) => snap.docs.map((d) => TeamApprovalRequest.fromFirestore(d.id, d.data())).toList());
+-  }
+-
+-  Stream<List<TeamApprovalRequest>> watchAllTeams() {
+-    return _teams
+-        .snapshots()
+-        .map((snap) => snap.docs.map((d) => TeamApprovalRequest.fromFirestore(d.id, d.data())).toList());
+-  }
+-
+-  Future<void> approveTeam(String teamId) {
+-    return _teams.doc(teamId).update({'approvalStatus': TeamApprovalStatus.approved.name});
+-  }
+-
+-  Future<void> rejectTeam(String teamId) {
+-    return _teams.doc(teamId).update({'approvalStatus': TeamApprovalStatus.rejected.name});
+-  }
+-}
+\ No newline at end of file
++import 'package:cloud_firestore/cloud_firestore.dart';
++
++import '../models/team_admin_model.dart';
++
++class TeamAdminRepository {
++  final FirebaseFirestore _firestore;
++
++  TeamAdminRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
++
++  CollectionReference<Map<String, dynamic>> get _teams => _firestore.collection('teams');
++
++  /// All teams, newest first. Sorted on the client so teams that predate the
++  /// `createdAt` field are still listed (a Firestore orderBy would drop them).
++  Stream<List<AdminTeam>> watchAllTeams() {
++    return _teams.snapshots().map((snap) {
++      final teams = snap.docs.map((d) => AdminTeam.fromFirestore(d.id, d.data())).toList();
++      teams.sort((a, b) => b.createdAt.compareTo(a.createdAt));
++      return teams;
++    });
++  }
++
++  Stream<AdminTeam?> watchTeam(String teamId) {
++    return _teams.doc(teamId).snapshots().map(
++          (doc) => doc.exists ? AdminTeam.fromFirestore(doc.id, doc.data()!) : null,
++    );
++  }
++
++  Stream<List<AdminTeamMember>> watchMembers(String teamId) {
++    return _teams.doc(teamId).collection('members').orderBy('joinedAt').snapshots().map(
++          (snap) => snap.docs.map((d) => AdminTeamMember.fromFirestore(d.id, d.data())).toList(),
++    );
++  }
++
++  /// How many tournaments this team has registered for.
++  Future<int> fetchTournamentCount(String teamId) async {
++    final result = await _firestore
++        .collectionGroup('registrations')
++        .where('teamId', isEqualTo: teamId)
++        .count()
++        .get();
++    return result.count ?? 0;
++  }
++
++  Future<void> setVerified(String teamId, bool verified) {
++    return _teams.doc(teamId).update({'verified': verified});
++  }
++
++  Future<void> setStatus(String teamId, TeamStatus status) {
++    return _teams.doc(teamId).update({'status': status.name});
++  }
++
++  /// Removes a non-captain member from the team (both the memberUids array
++  /// and their member document, in one atomic batch).
++  Future<void> removeMember({required String teamId, required String uid}) async {
++    final teamRef = _teams.doc(teamId);
++    final snap = await teamRef.get();
++    if (snap.data()?['captainUid'] == uid) {
++      throw Exception('The captain cannot be removed. Suspend the team instead.');
++    }
++
++    final batch = _firestore.batch();
++    batch.update(teamRef, {'memberUids': FieldValue.arrayRemove([uid])});
++    batch.delete(teamRef.collection('members').doc(uid));
++    await batch.commit();
++  }
++}
+diff -ruN orig/lib/features/admin/widgets/team_list_tile.dart eposrtplay/lib/features/admin/widgets/team_list_tile.dart
+--- orig/lib/features/admin/widgets/team_list_tile.dart	1970-01-01 00:00:00.000000000 +0000
++++ eposrtplay/lib/features/admin/widgets/team_list_tile.dart	2026-10-05 15:04:54.749523673 +0000
+@@ -0,0 +1,68 @@
++import 'package:flutter/material.dart';
++
++import '../../../core/theme/app_colors.dart';
++import '../models/team_admin_model.dart';
++
++class TeamListTile extends StatelessWidget {
++  final AdminTeam team;
++  final VoidCallback? onTap;
++
++  const TeamListTile({super.key, required this.team, this.onTap});
++
++  @override
++  Widget build(BuildContext context) {
++    final suspended = team.isSuspended;
++
++    return Container(
++      margin: const EdgeInsets.only(bottom: 8),
++      decoration: BoxDecoration(
++        color: AppColors.card,
++        borderRadius: BorderRadius.circular(12),
++        border: Border.all(color: suspended ? AppColors.danger.withValues(alpha: 0.5) : AppColors.hairline),
++      ),
++      child: ListTile(
++        onTap: onTap,
++        leading: CircleAvatar(
++          backgroundColor: AppColors.hairline,
++          backgroundImage: team.logoUrl != null && team.logoUrl!.isNotEmpty ? NetworkImage(team.logoUrl!) : null,
++          child: team.logoUrl == null || team.logoUrl!.isEmpty
++              ? const Icon(Icons.shield, color: Colors.white54, size: 18)
++              : null,
++        ),
++        title: Row(
++          children: [
++            Flexible(
++              child: Text(
++                team.name,
++                maxLines: 1,
++                overflow: TextOverflow.ellipsis,
++                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
++              ),
++            ),
++            if (team.verified) ...[
++              const SizedBox(width: 4),
++              const Icon(Icons.verified, color: AppColors.secondary, size: 15),
++            ],
++          ],
++        ),
++        subtitle: Text(
++          '[${team.tag}] · ${team.memberUids.length}/${team.maxMembers} members',
++          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
++        ),
++        trailing: suspended
++            ? Container(
++          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
++          decoration: BoxDecoration(
++            color: AppColors.danger.withValues(alpha: 0.15),
++            borderRadius: BorderRadius.circular(6),
++          ),
++          child: const Text(
++            'SUSPENDED',
++            style: TextStyle(color: AppColors.danger, fontSize: 9.5, fontWeight: FontWeight.w800),
++          ),
++        )
++            : Icon(Icons.chevron_right, color: AppColors.textSecondary),
++      ),
++    );
++  }
++}
+diff -ruN orig/lib/features/admin/widgets/team_request_card.dart eposrtplay/lib/features/admin/widgets/team_request_card.dart
+--- orig/lib/features/admin/widgets/team_request_card.dart	2026-10-05 15:04:54.708791001 +0000
++++ eposrtplay/lib/features/admin/widgets/team_request_card.dart	1970-01-01 00:00:00.000000000 +0000
+@@ -1,80 +0,0 @@
+-import 'package:flutter/material.dart';
+-
+-import '../repository/team_admin_repository.dart';
+-
+-const _kCard = Color(0xFF171821);
+-const _kHairline = Color(0xFF2A2C38);
+-const _kGreen = Color(0xFF3DDC84);
+-const _kTextSecondary = Color(0xFF9CA0AF);
+-
+-class TeamRequestCard extends StatelessWidget {
+-  final TeamApprovalRequest request;
+-  final VoidCallback onApprove;
+-  final VoidCallback onReject;
+-
+-  const TeamRequestCard({
+-    super.key,
+-    required this.request,
+-    required this.onApprove,
+-    required this.onReject,
+-  });
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Container(
+-      margin: const EdgeInsets.only(bottom: 10),
+-      decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: _kHairline)),
+-      padding: const EdgeInsets.all(14),
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.start,
+-        children: [
+-          Row(
+-            children: [
+-              CircleAvatar(
+-                backgroundColor: const Color(0xFF2A2C38),
+-                backgroundImage: request.logoUrl != null ? NetworkImage(request.logoUrl!) : null,
+-                child: request.logoUrl == null ? const Icon(Icons.shield, color: Colors.white54, size: 18) : null,
+-              ),
+-              const SizedBox(width: 12),
+-              Expanded(
+-                child: Column(
+-                  crossAxisAlignment: CrossAxisAlignment.start,
+-                  children: [
+-                    Text(request.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+-                    Text('Tag: ${request.tag}', style: const TextStyle(color: _kTextSecondary, fontSize: 11.5)),
+-                  ],
+-                ),
+-              ),
+-            ],
+-          ),
+-          const SizedBox(height: 12),
+-          Row(
+-            children: [
+-              Expanded(
+-                child: OutlinedButton(
+-                  onPressed: onReject,
+-                  style: OutlinedButton.styleFrom(
+-                    side: const BorderSide(color: Colors.redAccent),
+-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+-                  ),
+-                  child: const Text('Reject', style: TextStyle(color: Colors.redAccent)),
+-                ),
+-              ),
+-              const SizedBox(width: 10),
+-              Expanded(
+-                child: ElevatedButton(
+-                  onPressed: onApprove,
+-                  style: ElevatedButton.styleFrom(
+-                    backgroundColor: _kGreen,
+-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+-                  ),
+-                  child: const Text('Approve', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+-                ),
+-              ),
+-            ],
+-          ),
+-        ],
+-      ),
+-    );
+-  }
+-}
+\ No newline at end of file
+diff -ruN orig/lib/features/tournaments/repository/tournament_repository.dart eposrtplay/lib/features/tournaments/repository/tournament_repository.dart
+--- orig/lib/features/tournaments/repository/tournament_repository.dart	2026-10-05 15:04:54.711685690 +0000
++++ eposrtplay/lib/features/tournaments/repository/tournament_repository.dart	2026-10-05 15:04:54.728918177 +0000
+@@ -67,6 +67,12 @@
+       final max = data['maxParticipants'] ?? 0;
+       if (current >= max) throw Exception('Tournament is full');
+
++      // A suspended team (set from the admin panel) can't enter tournaments.
++      final teamSnap = await txn.get(_teams.doc(teamId));
++      if (teamSnap.data()?['status'] == 'suspended') {
++        throw Exception('This team is suspended and cannot register');
++      }
++
+       if (data['isPublished'] == false) throw Exception('This tournament is not open yet');
+       final now = DateTime.now();
+       final regStart = (data['registrationStart'] as Timestamp?)?.toDate();
+diff -ruN orig/lib/routes/app_router.dart eposrtplay/lib/routes/app_router.dart
+--- orig/lib/routes/app_router.dart	2026-10-05 15:04:54.712481810 +0000
++++ eposrtplay/lib/routes/app_router.dart	2026-10-05 15:04:54.728437296 +0000
+@@ -43,6 +43,7 @@
+ import '../features/admin/presentation/admin_tournaments_screen.dart';
+ import '../features/admin/presentation/admin_tournament_form_screen.dart';
+ import '../features/admin/presentation/admin_teams_screen.dart';
++import '../features/admin/presentation/admin_team_details_screen.dart';
+ import '../features/admin/presentation/admin_matches_screen.dart';
+ import '../features/admin/presentation/admin_match_create_screen.dart';
+ import '../features/admin/presentation/admin_match_manage_screen.dart';
+@@ -188,6 +189,10 @@
+         builder: (_, state) => AdminTournamentFormScreen(tournamentId: state.pathParameters['id']!),
+       ),
+       GoRoute(path: Routes.adminTeams, builder: (_, __) => const AdminTeamsScreen()),
++      GoRoute(
++        path: Routes.adminTeamDetails,
++        builder: (_, state) => AdminTeamDetailsScreen(teamId: state.pathParameters['id']!),
++      ),
+       GoRoute(path: Routes.adminMatches, builder: (_, __) => const AdminMatchesScreen()),
+       GoRoute(path: Routes.adminMatchCreate, builder: (_, __) => const AdminMatchCreateScreen()),
+       GoRoute(
+diff -ruN orig/lib/routes/route_names.dart eposrtplay/lib/routes/route_names.dart
+--- orig/lib/routes/route_names.dart	2026-10-05 15:04:54.712616732 +0000
++++ eposrtplay/lib/routes/route_names.dart	2026-10-05 15:04:54.727894138 +0000
+@@ -52,6 +52,8 @@
+   static const adminTournaments = '/admin/tournaments';
+   static const adminTournamentEdit = '/admin/tournaments/:id';
+   static const adminTeams = '/admin/teams';
++  static const adminTeamDetails = '/admin/teams/:id';
++  static String adminTeamDetailsPath(String id) => '/admin/teams/${Uri.encodeComponent(id)}';
+   static const adminMatches = '/admin/matches';
+   static const adminMatchCreate = '/admin/matches/create';
+   static const adminMatchManage = '/admin/matches/:id';

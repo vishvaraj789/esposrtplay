@@ -24,6 +24,19 @@ class Tournament {
   final String createdBy;
   final DateTime createdAt;
 
+  // --- Admin-managed details (all optional so older documents still load) ---
+  final String description;
+  final String game;
+  final String matchType;
+  final String rules;
+  final String? bannerUrl;
+  final DateTime? registrationStart;
+  final DateTime? registrationEnd;
+
+  /// Draft (false) vs Published (true). Players only see published tournaments.
+  /// Documents created before this field existed count as published.
+  final bool isPublished;
+
   const Tournament({
     required this.id,
     required this.name,
@@ -38,7 +51,23 @@ class Tournament {
     required this.prizeBreakdown,
     required this.createdBy,
     required this.createdAt,
+    this.description = '',
+    this.game = 'Free Fire MAX',
+    this.matchType = 'Battle Royale',
+    this.rules = '',
+    this.bannerUrl,
+    this.registrationStart,
+    this.registrationEnd,
+    this.isPublished = true,
   });
+
+  /// True when "now" is inside the registration window (an unset bound is open).
+  bool get isRegistrationOpen {
+    final now = DateTime.now();
+    if (registrationStart != null && now.isBefore(registrationStart!)) return false;
+    if (registrationEnd != null && now.isAfter(registrationEnd!)) return false;
+    return true;
+  }
 
   bool get isFull => currentParticipants >= maxParticipants;
 
@@ -59,6 +88,14 @@ class Tournament {
       ),
       createdBy: data['createdBy'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      description: data['description'] ?? '',
+      game: data['game'] ?? 'Free Fire MAX',
+      matchType: data['matchType'] ?? 'Battle Royale',
+      rules: data['rules'] ?? '',
+      bannerUrl: data['bannerUrl'],
+      registrationStart: (data['registrationStart'] as Timestamp?)?.toDate(),
+      registrationEnd: (data['registrationEnd'] as Timestamp?)?.toDate(),
+      isPublished: data['isPublished'] ?? true,
     );
   }
 
@@ -76,6 +113,14 @@ class Tournament {
       'prizeBreakdown': prizeBreakdown,
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
+      'description': description,
+      'game': game,
+      'matchType': matchType,
+      'rules': rules,
+      'bannerUrl': bannerUrl,
+      'registrationStart': registrationStart == null ? null : Timestamp.fromDate(registrationStart!),
+      'registrationEnd': registrationEnd == null ? null : Timestamp.fromDate(registrationEnd!),
+      'isPublished': isPublished,
     };
   }
 }

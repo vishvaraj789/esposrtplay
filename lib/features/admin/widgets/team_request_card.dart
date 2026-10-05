@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../repository/team_admin_repository.dart';
+import '../models/team_admin_model.dart';
 
 const _kCard = Color(0xFF171821);
 const _kHairline = Color(0xFF2A2C38);
